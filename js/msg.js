@@ -1158,28 +1158,28 @@ let MSGS = {
     ru: 'Файл',
     hu: 'Fájl',
   },
-  '#main-save_project#': { //ssouders
+  '#main-save_project#': {
     en: 'Save Project',
     fr: 'Nouveau programme',
     el: 'Νέο πρόγραμμα',
     nl: 'Nieuw programma',
     de: 'neues Programm',
   },
-  '#main-reset_simulator#': { //ssouders
+  '#main-reset_simulator#': {
     en: 'Reset Simulator',
     fr: 'Nouveau programme',
     el: 'Νέο πρόγραμμα',
     nl: 'Nieuw programma',
     de: 'neues Programm',
   },
-  '#main-view_projects#': { //ssouders
+  '#main-view_projects#': {
     en: 'View Projects',
     fr: 'Nouveau programme',
     el: 'Νέο πρόγραμμα',
     nl: 'Nieuw programma',
     de: 'neues Programm',
   },
-  '#main-save_screenshot#': { //ssouders
+  '#main-save_screenshot#': {
     en: 'Save Screenshot',
     fr: 'Nouveau programme',
     el: 'Νέο πρόγραμμα',
@@ -1597,7 +1597,7 @@ let MSGS = {
   '#main-worldBuilder_description#': {
     en:
       '<p>The GearsBot World Builder allows you to create a custom world.</p>',
-      //'<p>After you have completed your customization, save your creation to file and return here to load it.</p>', //ssouders
+      //'<p>After you have completed your customization, save your creation to file and return here to load it.</p>',
     nl:
       '<p>De GearsBot Wereld Bouwer stelt je in staat je eigen wereld te bouwen.</p>' +
       '<p>Als je wereld klaar is, sla je het op en kom je hier terug om het in te laden.</p>',
@@ -1629,7 +1629,7 @@ let MSGS = {
   '#main-configurator_description#': {
     en:
       '<p>The GearsBot Robot Configurator allows you to customize an existing robot or create a new robot design.</p>',
-      //'<p>After you have completed your customization, save your creation to file and return here to load it.</p>', //ssouders
+      //'<p>After you have completed your customization, save your creation to file and return here to load it.</p>',
     fr:
       '<p>Le configurateur de robot GearsBot permet de personnaliser un robot déjà existant ou d\'en créer un nouveau.</p>' +
       '<p>Quand votre personnalisation est finie, sauvegardez votre création dans un fichier et revenez ici pour le charger.</p>',
@@ -2036,14 +2036,14 @@ let MSGS = {
     ru: 'Загрузить',
     hu: 'Feltöltés',
   },
-  '#sim-save-db#': { //ssouders
+  '#sim-save-db#': {
     en: 'Save to Project',
     fr: 'Charger',
     el: 'Φορτώση',
     nl: 'Laden',
     de: 'Laden',
   },
-  '#sim-load-db#': { //ssouders
+  '#sim-load-db#': {
     en: 'Load DB',
     fr: 'Charger',
     el: 'Φορτώση',

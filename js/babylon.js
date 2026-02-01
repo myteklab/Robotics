@@ -344,7 +344,7 @@ var babylon = new function() {
         if (robot.disabled == true) {
           return;
         }
-        loader.push(robot.load(self.scene, self.world.arenaStart[robot.player])); //ssouders where robots are loaded into babylon
+        loader.push(robot.load(self.scene, self.world.arenaStart[robot.player]));
       }
     });
 
@@ -510,7 +510,7 @@ var babylon = new function() {
         return;
       }
       robot.render(delta);
-	  // console.log("robot " + i + ": " +  robot.body._absolutePosition._y); //ssouders2
+	  // console.log("robot " + i + ": " +  robot.body._absolutePosition._y);
     });
 
     // Chase camera: rotate with robot so it's always behind (with smooth lerping)

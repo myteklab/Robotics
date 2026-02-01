@@ -85,7 +85,7 @@ var builderHelpSystem = (function() {
         <table>
           <tr><th>Option</th><th>Description</th></tr>
           <tr><td>New World</td><td>Start fresh with a completely empty world (ground + walls only)</td></tr>
-          <tr><td>Save world to Server</td><td>Save the current world to your MyTekOS project. This is the main save - use it regularly!</td></tr>
+          <tr><td>Save world to Server</td><td>Save the current world to the server. This is the main save - use it regularly!</td></tr>
           <tr><td>Load world from file</td><td>Import a previously exported world from a local .json file</td></tr>
           <tr><td>Save world to file</td><td>Export the entire world (all objects, settings) as a .json file to your computer</td></tr>
           <tr><td>Load object from file</td><td>Import a single object from a .json file into your current world</td></tr>

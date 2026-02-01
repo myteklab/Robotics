@@ -2327,7 +2327,7 @@ var builder = new function() {
     });
   };
 
-  // Load from URL //ssouders what is this?
+  // Load from URL
   this.loadWorldURL = function(url) {
     return fetch(url)
       .then(function(response) {
@@ -2344,7 +2344,7 @@ var builder = new function() {
   };
 
 
-  // Load world - ssouders
+  // Load world
   this.loadWorld = function(json) {
 //console.log(json);
     try {
@@ -2352,15 +2352,15 @@ var builder = new function() {
 
       // Is it a world file?
       if (typeof loadedSave.bodyHeight != 'undefined') {
-        //showErrorModal(i18n.get('#sim-invalid_world_file_robot#')); //ssouders
-        //return; //ssouders
+        //showErrorModal(i18n.get('#sim-invalid_world_file_robot#'));
+        //return;
       }
 
       // Is it a world file?
       let world = worlds.find(world => world.name == loadedSave.worldName);
       if (typeof world == 'undefined') {
-        //showErrorModal(i18n.get('#sim-invalid_map#')); //ssouders
-        //return; //ssouders
+        //showErrorModal(i18n.get('#sim-invalid_map#'));
+        //return;
       }
 self.worldOptions = loadedSave;
         Object.assign(self.worldOptions, loadedSave.options);
@@ -2370,7 +2370,7 @@ self.worldOptions = loadedSave;
 
 
     } catch (e) {
-      showErrorModal(i18n.get('#sim-invalid_world_file_json#')); //ssouders
+      showErrorModal(i18n.get('#sim-invalid_world_file_json#'));
 console.log('failed');
     }
   };

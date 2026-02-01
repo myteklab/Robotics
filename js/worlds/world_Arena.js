@@ -50,7 +50,7 @@ var world_Arena = new function() {
       },
     ],
 
-    sumo: [ //ssouders all position values were 50
+    sumo: [
       {
         position: new BABYLON.Vector3(-40, 0, 40),
         rotation: new BABYLON.Vector3(0, 3/4 * Math.PI, 0)

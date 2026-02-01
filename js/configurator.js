@@ -2329,7 +2329,7 @@ var configurator = new function() {
     self.$deleteComponent.click(self.deleteComponent);
     self.$undo.click(self.undo);
 
-    //self.$robotName.change(self.setRobotName); //ssouders
+    //self.$robotName.change(self.setRobotName);
 
     babylon.scene.physicsEnabled = false;
     babylon.setCameraMode('arc')
@@ -2584,7 +2584,7 @@ var configurator = new function() {
 
   // Set the robot name
   this.setRobotName = function() {
-    //robot.options.name = self.$robotName.val(); //ssouders
+    //robot.options.name = self.$robotName.val();
   };
 
   // Show options
@@ -2835,7 +2835,7 @@ var configurator = new function() {
     self.setupPickingRay();
     babylon.scene.cameras[0].radius = self.cameraRadius;
     if (reloadComponents) {
-      //self.$robotName.val(robot.options.name); //ssouders
+      //self.$robotName.val(robot.options.name);
       self.loadIntoComponentsWindow(robot.options);
       self.showComponentOptions(robot.options);
     }
@@ -3409,64 +3409,19 @@ var configurator = new function() {
     })
   };
 
-  // Save screenshot //ssouders - updated for MyTekOS
+  // Save screenshot
   this.screenshot = function() {
-    var screenshot_file = BABYLON.Tools.CreateScreenshotUsingRenderTargetAsync(
-            babylon.scene.getEngine(),
-            babylon.scene.activeCamera,
-            { width: 600, height: 480 },
-            undefined,
-            'image/png',
-            8,
-            false,
-            'screenshot.png'
-        );
-
-        screenshot_file.then(function(result) {
-            console.log('Screenshot captured, saving to MyTekOS...');
-
-            // Save to MyTekOS using our new endpoint
-            fetch('../save_screenshot.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    project_id: getQueryVariable("id"),
-                    img_data: result
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    acknowledgeDialog({
-                        title: i18n.get('Success'),
-                        message: i18n.get('Screenshot saved!')
-                    });
-                    
-                    // Refresh the file manager if it exists
-                    try {
-                        if (parent && parent.document.getElementById('File-Manager')) {
-                            parent.document.getElementById('File-Manager').contentWindow.location.reload();
-                        }
-                    } catch(e) {
-                        // Ignore cross-origin errors
-                    }
-                } else {
-                    window.alert("Screenshot was NOT saved: " + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => {
-                console.error('Error saving screenshot:', error);
-                window.alert("Screenshot was NOT saved!");
-            });
-        })
-        .catch(error => {
-            console.error('Error capturing screenshot:', error);
-            window.alert("Failed to capture screenshot!");
-        });
-}
+    BABYLON.Tools.CreateScreenshotUsingRenderTargetAsync(
+      babylon.scene.getEngine(),
+      babylon.scene.activeCamera,
+      { width: 600, height: 480 },
+      undefined,
+      'image/png',
+      8,
+      false,
+      'screenshot.png'
+    );
+  }
 
 
   // Save current position
