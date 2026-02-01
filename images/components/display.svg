@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Outer housing frame -->
+  <rect x="2" y="4" width="20" height="16" rx="2"/>
+  <!-- Inner screen area -->
+  <rect x="4" y="6" width="16" height="12" rx="1" stroke-width="1.5"/>
+  <!-- Text lines on screen -->
+  <line x1="6" y1="9" x2="14" y2="9" stroke-width="1.5" opacity="0.7"/>
+  <line x1="6" y1="12" x2="16" y2="12" stroke-width="1.5" opacity="0.7"/>
+  <line x1="6" y1="15" x2="12" y2="15" stroke-width="1.5" opacity="0.7"/>
+  <!-- Power LED indicator -->
+  <circle cx="18" cy="18" r="1" fill="currentColor" stroke="none"/>
+</svg>

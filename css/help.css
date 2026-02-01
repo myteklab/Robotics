@@ -1,0 +1,259 @@
+/* Robotics Help Modal Styles */
+
+.help-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 3000;
+  animation: helpFadeIn 0.2s ease;
+}
+
+.help-overlay.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes helpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.help-modal {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  width: 680px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.help-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.help-modal-header h3 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.help-modal-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.help-modal-close:hover {
+  color: #fff;
+}
+
+.help-topics-strip {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #2a2a3e;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.help-topics-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.help-topics-strip::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 2px;
+}
+
+.help-topic-btn {
+  background: #2a2a3e;
+  border: 1px solid #3a3a5e;
+  color: #aaa;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.help-topic-btn:hover {
+  background: #3a3a5e;
+  color: #ddd;
+}
+
+.help-topic-btn.active {
+  background: #5b21b6;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+.help-modal-content {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.help-modal-content h4 {
+  color: #e0e0e0;
+  font-size: 15px;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #2a2a3e;
+}
+
+.help-modal-content h5 {
+  color: #b8b8d0;
+  font-size: 13px;
+  margin: 14px 0 6px 0;
+}
+
+.help-modal-content p {
+  margin: 0 0 10px 0;
+}
+
+.help-modal-content ul {
+  margin: 0 0 10px 0;
+  padding-left: 20px;
+}
+
+.help-modal-content li {
+  margin-bottom: 4px;
+}
+
+.help-modal-content code {
+  background: #2a2040;
+  color: #c9a0ff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.help-modal-content pre {
+  background: #1e1633;
+  border: 1px solid #3a2a5e;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 8px 0 12px 0;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d4c4f0;
+}
+
+.help-modal-content .help-note {
+  background: #1e2a1e;
+  border-left: 3px solid #4ade80;
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+}
+
+.help-modal-content .help-warning {
+  background: #2a2a1e;
+  border-left: 3px solid #facc15;
+  padding: 8px 12px;
+  margin: 8px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+}
+
+.help-modal-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px 0;
+  font-size: 12px;
+}
+
+.help-modal-content th {
+  background: #2a2a3e;
+  color: #b8b8d0;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid #3a3a5e;
+}
+
+.help-modal-content td {
+  padding: 5px 10px;
+  border: 1px solid #2a2a3e;
+}
+
+.help-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.help-modal-footer a {
+  color: #7c3aed;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.help-modal-footer a:hover {
+  text-decoration: underline;
+}
+
+.help-modal-footer button {
+  background: #5b21b6;
+  border: none;
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.help-modal-footer button:hover {
+  background: #7c3aed;
+}
+
+/* Help trigger buttons */
+.help-trigger-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #888;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  transition: all 0.15s;
+}
+
+.help-trigger-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}

@@ -1,0 +1,81 @@
+{
+  "worldName": "base",
+  "options": {
+    "groundType": "box",
+    "length": 100,
+    "width": 100,
+    "wall": true,
+    "wallHeight": 8,
+    "wallThickness": 4,
+    "wallColor": "#1A1A1A",
+    "groundFriction": 1,
+    "wallFriction": 0.1,
+    "groundRestitution": 0,
+    "wallRestitution": 0.1,
+    "timer": "up",
+    "timerDuration": 90,
+    "timerEnd": "continue",
+    "startPos": "center",
+    "startPosXYZ": [0, -35, 0],
+    "startRot": 0,
+    "objects": [
+      {
+        "type": "zone",
+        "position": [0, 35, 10],
+        "rotation": [0, 0, 0],
+        "rotationMode": "degrees",
+        "size": [25, 25, 20],
+        "color": "#9900ff60",
+        "label": "HOLD 3s",
+        "showLabel": true,
+        "triggerType": "objectDwell",
+        "points": 100,
+        "repeatable": false,
+        "dwellTime": 3,
+        "scoreThreshold": 100,
+        "scoreThresholdAction": "stopTimer"
+      },
+      {
+        "type": "box",
+        "position": [0, 0, 5],
+        "rotation": [0, 0, 0],
+        "rotationMode": "degrees",
+        "size": [10, 10, 10],
+        "color": "#ff9900",
+        "imageType": "repeat",
+        "imageURL": "textures/box/cardboard.jpg",
+        "physicsOptions": "moveable",
+        "magnetic": true,
+        "receiveShadows": true,
+        "castShadows": true,
+        "isPickable": true
+      },
+      {
+        "type": "cylinder",
+        "position": [-25, 0, 7.5],
+        "rotation": [0, 0, 0],
+        "rotationMode": "degrees",
+        "size": [15, 15, 15],
+        "color": "#666666",
+        "physicsOptions": "fixed",
+        "magnetic": false,
+        "receiveShadows": true,
+        "castShadows": true,
+        "isPickable": true
+      },
+      {
+        "type": "cylinder",
+        "position": [25, 0, 7.5],
+        "rotation": [0, 0, 0],
+        "rotationMode": "degrees",
+        "size": [15, 15, 15],
+        "color": "#666666",
+        "physicsOptions": "fixed",
+        "magnetic": false,
+        "receiveShadows": true,
+        "castShadows": true,
+        "isPickable": true
+      }
+    ]
+  }
+}

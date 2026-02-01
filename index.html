@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="icon" href="favicon-32.png" sizes="32x32">
+  <link rel="icon" href="favicon-128.png" sizes="128x128">
+  <link rel="icon" href="favicon-167.png" sizes="167x167">
+  <link rel="icon" href="favicon-192.png" sizes="192x192">
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/widgets.css">
+  <link rel="stylesheet" href="css/help.css">
+
+  <script src="jquery/jquery-3.5.1.slim.min.js"></script>
+
+  <script src="ace-1.4.10/src-min/ace.js"></script>
+  <script src="ace-1.4.10/src-min/ext-language_tools.js"></script>
+
+  <script src="skulpt/0.11.0/skulpt.min.js"></script>
+  <script src="skulpt/0.11.0/skulpt-stdlib.js"></script>
+
+  <script src="ammo/ammo-20210414.wasm.js"></script>
+
+  <script src="babylon/4.2.1/babylon.js"></script>
+  <script src="babylon/4.2.1/babylonjs.loaders.min.js"></script>
+  <script src="pep/0.4.3/pep.min.js"></script>
+
+  <script src="jszip/3.5.0/jszip.min.js"></script>
+
+  <script src="js/msg.js"></script>
+  <script src="js/common/widgets.js"></script>
+
+  <title>Robotics</title>
+</head>
+
+<body>
+  <header>
+    <div>Robotics</div>
+    <input type="text" id="projectName" placeholder="Project Name">
+    <ul class="panelTabs">
+      <li id="navBlocks" class="active">Blocks</li>
+      <li id="navPython" class="pythonMain">
+        <span>
+          Python
+        </span>
+        <span class="py-mod-controls">
+          <i class="icon-upload upload-py-mod"
+             title="Upload python main"></i>
+          <i class="icon-download download-py-mod"
+            title="Download python main"></i>
+          <i class="icon-newFile add-py-mod"
+            title="Add python module"></i>
+        </span>
+      </li>
+      <li id="navSim">Simulator</li>
+    </ul>
+    <div class="menuBar">
+      <div class="menuItem fileMenu">File</div>
+      <div class="menuItem pythonMenu">Python</div>
+      <div class="menuItem robotMenu">Robot</div>
+      <div class="menuItem worldsMenu">Worlds</div>
+      <div class="menuItem helpMenu">Help</div>
+    </div>
+    <div class="panelControlsArea">
+      <div class="panelControls active" aria-labelledby="navBlocks">
+        <div class="saveBlockly hide">Save Now</div>
+      </div>
+      <div class="panelControls " aria-labelledby="navPython">
+        <div class="savePython hide">Save Now</div>
+      </div>
+    </div>
+    <div class="language"><span class="icon-globe"></span> &#x25BE;</div>
+  </header>
+
+  <main>
+    <div class="panels">
+
+      <div class="blocklyEditor panel active" aria-labelledby="navBlocks">
+        <div id="blocklyDiv" style="height: 100%; width: 100%;"></div>
+        <div id="blocklyHiddenDiv" style="height: 100%; width: 100%; position: absolute; top: -10000px;"></div>
+        <div id="blocklyPages"><span class="currentPage">Main</span></div>
+      </div>
+
+      <div class="panel" aria-labelledby="navPython">
+        <div id="pythonCode"></div>
+      </div>
+
+      <div class="panel" aria-labelledby="navSim" id="simPanel">
+        <canvas id="renderCanvas" touch-action="none"></canvas>
+        <div class="runSim"><span class="icon-play"></span></div>
+        <div class="reset"><span class="icon-reset"></span></div>
+        <div class="sensors"><span class="icon-sensors"></span></div>
+        <div class="sensorViz" title="Sensor Visualization" onclick="sensorViz.toggle()"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="sensorReadings hide"></div>
+        <div class="cameraSelector closed">
+          <div class="camera">
+            <span class="icon-cameraFollow"></span>
+          </div>
+          <div class="cameraOptions cameraFollow">
+            <span class="icon-cameraFollow"></span>
+          </div>
+          <div class="cameraOptions cameraBehind" title="Behind Camera (static angle)">
+            <svg class="icon-cameraBehind" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="display:block;margin:auto;">
+              <path d="M2 7h12v9H2z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="3" y="8.5" width="2" height="2.5" rx="0.3"/>
+              <rect x="6" y="8.5" width="2" height="2.5" rx="0.3"/>
+              <rect x="9" y="8.5" width="2" height="2.5" rx="0.3"/>
+              <rect x="3" y="11.5" width="2" height="2.5" rx="0.3"/>
+              <rect x="6" y="11.5" width="2" height="2.5" rx="0.3"/>
+              <rect x="9" y="11.5" width="2" height="2.5" rx="0.3"/>
+              <path d="M14 9.5l3-1.5v7l-3-1.5z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="18.5" y="8" width="4" height="5" rx="0.8" fill="currentColor"/>
+              <rect x="18" y="13.5" width="2" height="1.5" rx="0.3" fill="currentColor"/>
+              <rect x="21" y="13.5" width="2" height="1.5" rx="0.3" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="cameraOptions cameraChase" title="Chase Camera (follows robot heading)">
+            <svg class="icon-cameraChase" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="display:block;margin:auto;">
+              <path d="M4 6h12v9H4z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="5" y="7.5" width="2" height="3" rx="0.3"/>
+              <rect x="8" y="7.5" width="2" height="3" rx="0.3"/>
+              <rect x="11" y="7.5" width="2" height="3" rx="0.3"/>
+              <rect x="5" y="11" width="2" height="3" rx="0.3"/>
+              <rect x="8" y="11" width="2" height="3" rx="0.3"/>
+              <rect x="11" y="11" width="2" height="3" rx="0.3"/>
+              <path d="M16 8.5l4-2v8l-4-2z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="1" y1="8" x2="3" y2="8" stroke="currentColor" stroke-width="1.2"/>
+              <line x1="0" y1="10.5" x2="3" y2="10.5" stroke="currentColor" stroke-width="1.2"/>
+              <line x1="1" y1="13" x2="3" y2="13" stroke="currentColor" stroke-width="1.2"/>
+              <rect x="21" y="9" width="2.5" height="3" rx="0.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="cameraOptions cameraTop">
+            <span class="icon-cameraTop"></span>
+          </div>
+          <div class="cameraOptions cameraArc">
+            <span class="icon-cameraArc"></span>
+          </div>
+          <div class="cameraOptions resetCamera">
+            <span class="icon-reset"></span>
+          </div>
+        </div>
+
+        <div class="worldInfo hide"></div>
+
+        <!-- Speed indicator -->
+        <div class="speedIndicator">
+          <div class="speedLabel">SPEED</div>
+          <div class="speedBarContainer">
+            <div class="speedBar"></div>
+          </div>
+          <div class="speedValue">0%</div>
+        </div>
+
+        <!-- Grip indicator -->
+        <div class="gripIndicator"></div>
+
+        <div class="ruler closed">
+          <div class="icon">
+            <span class="icon-ruler"></span>
+          </div>
+          <div class="measurements">
+            <table>
+              <tr>
+                <td class="x">X:</td>
+                <td class="y">Y:</td>
+                <td class="alt">Alt:</td>
+              </tr>
+              <tr>
+                <td class="dist" colspan="2">Distance:</td>
+                <td class="angle">Angle:</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <div class="joystick closed" tabindex=0>
+          <div class="icon">
+            <span class="icon-joystick"></span>
+          </div>
+          <div class="keyboard">
+            <span class="icon-keyboard"></span>
+          </div>
+          <div class="virtualJoystick">
+            <span class="icon-virtualJoystickIndicator"></span>
+            <span class="icon-virtualJoystick"></span>
+          </div>
+        </div>
+        <div class="hubButtons closed">
+          <div class="icon">
+            <span class="icon-buttons"></span>
+          </div>
+          <div class="controls">
+            <span class="icon-buttonsBackspace"></span>
+            <span class="icon-buttonsUp"></span>
+            <span class="icon-buttonsDown"></span>
+            <span class="icon-buttonsLeft"></span>
+            <span class="icon-buttonsRight"></span>
+            <span class="icon-buttonsEnter"></span>
+          </div>
+        </div>
+
+        <div class="lightingPanel closed">
+          <div class="icon" title="Lighting Controls">
+            <span style="font-size:28px;cursor:pointer;">&#9728;</span>
+          </div>
+          <div class="lightingControls">
+            <div class="lightControl">
+              <label>Sun</label>
+              <input type="range" class="lightDirIntensity" min="0" max="200" value="80">
+            </div>
+            <div class="lightControl">
+              <label>Ambient</label>
+              <input type="range" class="lightHemiIntensity" min="0" max="200" value="50">
+            </div>
+            <div class="lightControl">
+              <label>Shadow</label>
+              <input type="range" class="shadowDarkness" min="0" max="100" value="50">
+            </div>
+          </div>
+        </div>
+
+        <div class="fps"></div>
+
+        <div class="console">
+          <div class="chevron"></div>
+          <div title="Clear Console"  class="clear">&#x239a;</div>
+          <pre class="content"></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="blockly-9.0.0/blockly.js"></script>
+  <script src="blockly-9.0.0/blocks.js"></script>
+  <script src="blockly-9.0.0/python.js"></script>
+
+  <script src="js/ev3dev2_generator.js"></script>
+  <script src="js/pybricks_generator.js"></script>
+  <script src="js/blockly.js"></script>
+  <script src="js/skulpt.js"></script>
+  <script src="js/worlds/World_Base.js"></script>
+  <script src="js/worlds/world_Grid.js"></script>
+  <script src="js/worlds/world_LineFollowing.js"></script>
+  <script src="js/worlds/world_Gyro.js"></script>
+  <script src="js/worlds/world_Paintball.js"></script>
+  <script src="js/worlds/world_Sumo.js"></script>
+  <script src="js/worlds/world_FireRescue.js"></script>
+  <script src="js/worlds/world_Maze.js"></script>
+  <script src="js/worlds/world_Missions.js"></script>
+  <script src="js/worlds/world_Custom.js"></script>
+  <script src="js/worlds/world_Football.js"></script>
+  <script src="js/worlds/world_Arena.js"></script>
+  <script src="js/worlds/extra/world_challenges.js"></script>
+  <script src="js/robotComponents.js"></script>
+  <script src="js/robotTemplates.js"></script>
+  <script src="js/Wheel.js"></script>
+  <script src="js/Robot.js"></script>
+  <script src="js/sensorVisualization.js"></script>
+  <script>
+    // Initialize robot with default template
+    var robots = [];
+    var robot = new Robot();
+    robot.options = JSON.parse(JSON.stringify(robotTemplates[0]));
+    robot.player = 'single';
+    robots.push(robot);
+  </script>
+  <script src="js/babylon.js"></script>
+  <script src="js/blocklyPanel.js"></script>
+  <script src="js/pythonPanel.js"></script>
+  <script src="js/pythonLibPanel.js"></script>
+  <script src="js/simPanel.js"></script>
+  <script src="js/main.js"></script>
+
+  <script>
+    // Init classes
+    blockly.init();
+
+    function loadWorldFromGET() {
+      let worldJSON = readGET('worldJSON');
+      if (worldJSON) {
+        simPanel.loadWorldURL(decodeURIComponent(worldJSON));
+      }
+    }
+
+    function loadRobotFromGET() {
+      let robotJSON = readGET('robotJSON');
+      if (robotJSON) {
+        main.loadRobotURL(decodeURIComponent(robotJSON));
+      }
+    }
+
+    function loadFilterFromGET() {
+      let filterBlocksJSON = readGET('filterBlocksJSON');
+      if (filterBlocksJSON) {
+        blockly.loadToolboxFilterURL(decodeURIComponent(filterBlocksJSON));
+      }
+    }
+
+    function loadScript(scriptName) {
+      var script = document.createElement('script');
+      script.src = scriptName;
+      document.documentElement.firstChild.appendChild(script);
+      return new Promise(resolve => {
+        script.onload = function() {
+          resolve();
+        }
+      })
+    }
+
+    function loadWorldScriptFromGET() {
+      let scripts = readGET('worldScripts');
+      if (!scripts) {
+        return new Promise(resolve => {
+          resolve();
+        })
+      }
+      let scriptsPromises = [];
+      for (let script of scripts.split(',')) {
+        scriptsPromises.push(loadScript('js/worlds/extra/' + script + '.js?v=' + Date.now()));
+      }
+      return Promise.all(scriptsPromises);
+    }
+
+    // Load world if specified
+    async function loadWhenReady() {
+      if (typeof babylon.scene != 'undefined' && babylon.scene.isReady()) {
+        await loadWorldScriptFromGET();
+        loadWorldFromGET();
+        loadRobotFromGET();
+        loadFilterFromGET();
+      } else {
+        setTimeout(loadWhenReady, 100);
+      }
+    }
+
+    loadWhenReady();
+  </script>
+
+  <script src="js/help.js"></script>
+
+  <!-- Help Modal -->
+  <div id="helpOverlay" class="help-overlay" onclick="if(event.target===this)helpSystem.closeHelp()">
+    <div class="help-modal">
+      <div class="help-modal-header">
+        <h3>Help</h3>
+        <button class="help-modal-close" onclick="helpSystem.closeHelp()">&times;</button>
+      </div>
+      <div class="help-topics-strip"></div>
+      <div class="help-modal-content"></div>
+      <div class="help-modal-footer">
+        <a href="docs/" target="_blank">Full Documentation &rarr;</a>
+        <button onclick="helpSystem.closeHelp()">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
