@@ -1114,7 +1114,18 @@ var builder = new function() {
       // Listen for initial config from parent
       window.addEventListener('message', function(event) {
         var data = event.data;
-        if (!data || data.type !== 'robotics:loadWorld') return;
+        if (!data) return;
+
+        if (data.type === 'robotics:loadRobot') {
+          // Apply custom robot config
+          if (data.robotOptions) {
+            robot.options = JSON.parse(JSON.stringify(data.robotOptions));
+            self.resetScene();
+          }
+          return;
+        }
+
+        if (data.type !== 'robotics:loadWorld') return;
 
         try {
           var config = data.worldConfig;
