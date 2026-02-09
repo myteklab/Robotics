@@ -2589,6 +2589,13 @@ var configurator = new function() {
 
   // Show options
   this.showComponentOptions = function(component) {
+    // Preserve which sections are expanded before clearing
+    var openSections = {};
+    self.$settingsArea.find('.config-section.open').each(function() {
+      var name = $(this).attr('data-section');
+      if (name) openSections[name] = true;
+    });
+
     self.$settingsArea.empty();
 
     let genConfig = new GenConfig(self, self.$settingsArea);
@@ -2638,6 +2645,16 @@ var configurator = new function() {
     if (component.type == 'Pen') {
       self.penSpecialCaseSetup(component);
     }
+
+    // Restore previously expanded sections
+    self.$settingsArea.find('.config-section').each(function() {
+      var name = $(this).attr('data-section');
+      if (name && openSections[name]) {
+        $(this).addClass('open');
+        $(this).find('.config-section-content').show();
+        $(this).find('.section-toggle').text('▼');
+      }
+    });
   };
 
   // Select built in images
