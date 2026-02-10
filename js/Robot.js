@@ -455,6 +455,9 @@ function Robot() {
 
 
       // Wheels - use pre-calculated scaled dimensions
+      // For custom wheel models, scale speed DOWN and grip UP to compensate
+      // for bigger radius (ground speed = angular velocity × radius)
+      var wms = (options.wheelModelURL && options.wheelModelScale) ? options.wheelModelScale : 1;
       driveWheelOptions = {
         diameter: scaledWheelDiameter,
         width: scaledWheelWidth,
@@ -462,10 +465,11 @@ function Robot() {
         friction: options.wheelFriction,
         maxAcceleration: options.wheelMaxAcceleration,
         stopActionHoldForce: options.wheelStopActionHoldForce,
-        tireDownwardsForce: options.wheelTireDownwardsForce,
+        tireDownwardsForce: (options.wheelTireDownwardsForce || -4000) * wms,
         modelURL: options.wheelModelURL || '',
         modelScale: options.wheelModelScale || 1,
-        color: options.wheelColor || '333333'
+        color: options.wheelColor || '333333',
+        maxSpeed: (800 / 180 * Math.PI) / wms
       };
 
       if (options.wheels){

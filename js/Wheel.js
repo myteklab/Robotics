@@ -101,6 +101,7 @@ function Wheel(scene, parent, pos, rot, port, options) {
 
     self.maxAcceleration = self.options.maxAcceleration;
     self.stopActionHoldForce = self.options.stopActionHoldForce;
+    self.MAX_SPEED = self.options.maxSpeed;
     self.TIRE_DOWNWARDS_FORCE = new BABYLON.Vector3(0, self.options.tireDownwardsForce, 0);
 
     var wheelMat = scene.getMaterialByID('wheel');
@@ -356,6 +357,7 @@ function Wheel(scene, parent, pos, rot, port, options) {
       maxAcceleration: self.MAX_ACCELERATION,
       stopActionHoldForce: self.STOP_ACTION_HOLD_FORCE,
       tireDownwardsForce: self.TIRE_DOWNWARDS_FORCE,
+      maxSpeed: self.MAX_SPEED,
       components: [],
       modelURL: '',
       modelScale: 1,
