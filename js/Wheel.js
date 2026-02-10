@@ -138,13 +138,17 @@ function Wheel(scene, parent, pos, rot, port, options) {
     parent.removeChild(self.mesh);
 
     // If using custom model with scale != 1, scale the physics mesh too
-    // This ensures the wheel visual matches the physics (doesn't clip/float)
+    // Robot.js handles body Y positioning via effectiveWheelDiameter
     if (self.options.modelURL && self.options.modelURL !== '' && self.options.modelScale && self.options.modelScale != 1) {
       self.mesh.scaling.setAll(self.options.modelScale);
-      // Adjust position to compensate for scaled wheel radius
+      // Adjust X position to keep wheel adjacent to body/motor
       var scaleDiff = self.options.modelScale - 1;
-      var radiusChange = (self.options.diameter / 2) * scaleDiff;
-      self.mesh.position.y += radiusChange;
+      var widthChange = (self.options.width / 2) * scaleDiff;
+      if (self.mesh.position.x < 0) {
+        self.mesh.position.x -= widthChange; // Left wheel: move further left
+      } else {
+        self.mesh.position.x += widthChange; // Right wheel: move further right
+      }
     }
 
     scene.shadowGenerator.addShadowCaster(self.mesh);
@@ -173,6 +177,30 @@ function Wheel(scene, parent, pos, rot, port, options) {
           return;
         }
         var meshes = results.meshes;
+
+        // GLTF/GLB: Strip __root__ node and convert Y-up to Z-up to match STL.
+        // Babylon.js GLTF loader adds __root__ with scale(1,1,-1) for handedness.
+        // BlocksCAD GLB exports Y-up vertices (glTF spec), STL exports Z-up.
+        if (pluginExtension === '.glb' || pluginExtension === '.gltf') {
+          if (meshes.length > 0 && meshes[0].name === '__root__') {
+            var rootNode = meshes[0];
+            var rootChildren = rootNode.getChildren();
+            for (var c = 0; c < rootChildren.length; c++) {
+              rootChildren[c].parent = null;
+            }
+            rootNode.dispose();
+            meshes = meshes.slice(1);
+          }
+          for (var i = 0; i < meshes.length; i++) {
+            if (meshes[i].rotationQuaternion) {
+              meshes[i].rotationQuaternion = null;
+            }
+          }
+          // Rotate -90° X to convert Y-up (glTF) to Z-up (matching STL/OpenSCAD)
+          if (meshes.length > 0) {
+            meshes[0].rotation.x = -Math.PI / 2;
+          }
+        }
 
         // Compute bounding box to auto-fit model to wheel dimensions
         var min = null;

@@ -85,6 +85,10 @@ function Robot() {
       var scaledWheelWidth = options.wheelWidth * compScale;
       var scaledCasterDiameter = (options.casterDiameter || 4) * compScale;
 
+      // Effective diameter accounts for custom wheel model scaling
+      var wheelModelScale = (options.wheelModelURL && options.wheelModelScale) ? options.wheelModelScale : 1;
+      var effectiveWheelDiameter = scaledWheelDiameter * wheelModelScale;
+
       // Body
       var bodyMat = new BABYLON.StandardMaterial('body', scene);
       var faceUV = new Array(6);
@@ -298,7 +302,7 @@ function Robot() {
         });
       }
       body.position.x = 0;
-      body.position.y = (options.bodyHeight / 2) + (scaledWheelDiameter / 2) - options.bodyEdgeToWheelCenterY;
+      body.position.y = (options.bodyHeight / 2) + (effectiveWheelDiameter / 2) - options.bodyEdgeToWheelCenterY;
       body.position.z = 0;
       scene.shadowGenerator.addShadowCaster(body);
       body.position.addInPlace(startPos);
@@ -330,7 +334,7 @@ function Robot() {
           segments: 24
         }, scene);
         caster.material = ballMat;
-        caster.position.y = -(options.bodyHeight / 2) + options.bodyEdgeToWheelCenterY - scaledWheelDiameter / 2 + ballRadius;
+        caster.position.y = -(options.bodyHeight / 2) + options.bodyEdgeToWheelCenterY - effectiveWheelDiameter / 2 + ballRadius;
         caster.position.z = -(options.bodyLength / 2) + ballRadius;
         if (typeof options.casterOffsetZ != 'undefined') {
           caster.position.z += options.casterOffsetZ;
