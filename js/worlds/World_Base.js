@@ -16,7 +16,8 @@ var World_Base = function() {
     totalScore: 0,
     zoneScores: [],
     running: false,
-    timerStopped: false
+    timerStopped: false,
+    thresholdReached: false
   };
 
   this.robotStart = {
@@ -1352,7 +1353,8 @@ var World_Base = function() {
           return { triggered: false, score: 0, dwellStart: null, lastScoreTime: 0, scoredMeshIds: {} };
         }),
         running: true,
-        timerStopped: false
+        timerStopped: false,
+        thresholdReached: false
       };
       self.panel.showWorldInfoPanel();
       self.drawScore(true);
@@ -1429,8 +1431,12 @@ var World_Base = function() {
         self.triggerZoneFeedback(zoneMesh);
         self.drawScore(false);
 
-        if (options.scoreThreshold > 0 && self.scoreState.totalScore >= options.scoreThreshold) {
+        if (options.scoreThreshold > 0 && !self.scoreState.thresholdReached && self.scoreState.totalScore >= options.scoreThreshold) {
+          self.scoreState.thresholdReached = true;
           self.handleScoreThreshold(options.scoreThresholdAction);
+          if (options.celebrateOnThreshold) {
+            self.playCelebration(zoneMesh);
+          }
         }
       }
     });
@@ -1535,6 +1541,101 @@ var World_Base = function() {
       setTimeout(pulse, 120);
     }
     pulse();
+  };
+
+  // Play confetti celebration at zone position
+  self.playCelebration = function(zoneMesh) {
+    let scene = babylon.scene;
+    let zonePos = zoneMesh.absolutePosition.clone();
+    zonePos.y += zoneMesh.scaling.y * 0.5; // Top of zone
+
+    // Create a small white texture for particles
+    let texture = new BABYLON.DynamicTexture('confettiTex', 16, scene, false);
+    let ctx = texture.getContext();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(2, 2, 12, 12);
+    texture.update();
+
+    // Confetti colors
+    let colors = [
+      new BABYLON.Color4(1, 0.2, 0.2, 1),    // red
+      new BABYLON.Color4(0.2, 0.6, 1, 1),     // blue
+      new BABYLON.Color4(1, 0.85, 0, 1),      // gold
+      new BABYLON.Color4(0.2, 0.9, 0.3, 1),   // green
+      new BABYLON.Color4(1, 0.4, 0.8, 1),     // pink
+      new BABYLON.Color4(0.6, 0.3, 1, 1)      // purple
+    ];
+
+    // Launch multiple bursts with slight delays
+    for (let burst = 0; burst < 3; burst++) {
+      setTimeout(function() {
+        let ps = new BABYLON.ParticleSystem('confetti' + burst, 150, scene);
+        ps.particleTexture = texture;
+
+        // Emit from zone center
+        ps.emitter = new BABYLON.Vector3(
+          zonePos.x + (burst - 1) * 3,
+          zonePos.y,
+          zonePos.z
+        );
+
+        // Box emitter for spread
+        ps.minEmitBox = new BABYLON.Vector3(-3, 0, -3);
+        ps.maxEmitBox = new BABYLON.Vector3(3, 0, 3);
+
+        // Particle sizes (small rectangles)
+        ps.minSize = 0.3;
+        ps.maxSize = 0.7;
+
+        // Lifetime
+        ps.minLifeTime = 1.5;
+        ps.maxLifeTime = 3.0;
+
+        // Emit upward and outward
+        ps.direction1 = new BABYLON.Vector3(-4, 12, -4);
+        ps.direction2 = new BABYLON.Vector3(4, 18, 4);
+
+        // Gravity pulls them down
+        ps.gravity = new BABYLON.Vector3(0, -15, 0);
+
+        // Emit rate (burst then stop)
+        ps.emitRate = 300;
+
+        // Color variation
+        let c1 = colors[Math.floor(Math.random() * colors.length)];
+        let c2 = colors[Math.floor(Math.random() * colors.length)];
+        ps.color1 = c1;
+        ps.color2 = c2;
+        ps.colorDead = new BABYLON.Color4(c1.r, c1.g, c1.b, 0);
+
+        // Angular speed for tumbling
+        ps.minAngularSpeed = -4;
+        ps.maxAngularSpeed = 4;
+
+        // Slight speed variation
+        ps.minEmitPower = 2;
+        ps.maxEmitPower = 5;
+        ps.updateSpeed = 0.01;
+
+        // Additive blending for brightness
+        ps.blendMode = BABYLON.ParticleSystem.BLEND_STANDARD;
+
+        ps.start();
+
+        // Stop emitting after a short burst, then dispose
+        setTimeout(function() {
+          ps.stop();
+        }, 400);
+        setTimeout(function() {
+          ps.dispose();
+        }, 4000);
+      }, burst * 200);
+    }
+
+    // Dispose texture after all particles are done
+    setTimeout(function() {
+      texture.dispose();
+    }, 5000);
   };
 
   // Draw or update the score display

@@ -949,7 +949,8 @@ var builder = new function() {
     dwellTime: 0,
     requireStay: false,
     scoreThreshold: 0,
-    scoreThresholdAction: 'none'
+    scoreThresholdAction: 'none',
+    celebrateOnThreshold: false
   };
 
   this.zoneTemplate = {
@@ -1047,6 +1048,11 @@ var builder = new function() {
           ['Stop Timer', 'stopTimer']
         ],
         help: 'Action to perform when score threshold is reached'
+      },
+      {
+        option: 'celebrateOnThreshold',
+        type: 'boolean',
+        help: 'Play a confetti celebration when the score threshold is reached'
       }
     ]
   };
