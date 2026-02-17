@@ -1391,6 +1391,20 @@ var World_Base = function() {
       let zoneState = self.scoreState.zoneScores[idx];
       let options = zoneMesh.zoneOptions;
 
+      // Check for objects that left a requireStay zone
+      if (options.requireStay && zoneState.scoredMeshIds) {
+        let meshIds = Object.keys(zoneState.scoredMeshIds);
+        for (let m = 0; m < meshIds.length; m++) {
+          let mesh = zoneState.scoredMeshIds[meshIds[m]];
+          if (!mesh || mesh.isDisposed || !zoneMesh.intersectsPoint(mesh.absolutePosition)) {
+            delete zoneState.scoredMeshIds[meshIds[m]];
+            zoneState.score -= options.points;
+            self.scoreState.totalScore -= options.points;
+            self.drawScore(false);
+          }
+        }
+      }
+
       if (!options.repeatable && zoneState.triggered) return;
 
       // Cooldown for repeatable zones (1 second)
@@ -1465,10 +1479,10 @@ var World_Base = function() {
       if (isGripped) continue;
 
       if (zoneMesh.intersectsPoint(mesh.absolutePosition)) {
-        // Record this object as scored in the zone
+        // Record this object as scored in the zone (store mesh reference for requireStay lookups)
         if (zoneState && zoneState.scoredMeshIds) {
           let meshId = mesh.uniqueId || mesh.id;
-          zoneState.scoredMeshIds[meshId] = true;
+          zoneState.scoredMeshIds[meshId] = mesh;
         }
         return true;
       }

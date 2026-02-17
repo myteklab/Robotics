@@ -947,6 +947,7 @@ var builder = new function() {
     points: 10,
     repeatable: false,
     dwellTime: 0,
+    requireStay: false,
     scoreThreshold: 0,
     scoreThresholdAction: 'none'
   };
@@ -1021,6 +1022,11 @@ var builder = new function() {
         option: 'repeatable',
         type: 'boolean',
         help: 'If unchecked, this zone only scores once per simulation run'
+      },
+      {
+        option: 'requireStay',
+        type: 'boolean',
+        help: 'Objects must remain in the zone to keep their points. If an object leaves, its points are lost.'
       },
       {
         option: 'dwellTime',
