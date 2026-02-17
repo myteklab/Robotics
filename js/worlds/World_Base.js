@@ -15,7 +15,8 @@ var World_Base = function() {
   this.scoreState = {
     totalScore: 0,
     zoneScores: [],
-    running: false
+    running: false,
+    timerStopped: false
   };
 
   this.robotStart = {
@@ -1348,9 +1349,10 @@ var World_Base = function() {
       self.scoreState = {
         totalScore: 0,
         zoneScores: self.scoreZones.map(function() {
-          return { triggered: false, score: 0, dwellStart: null, lastScoreTime: 0 };
+          return { triggered: false, score: 0, dwellStart: null, lastScoreTime: 0, scoredMeshIds: {} };
         }),
-        running: true
+        running: true,
+        timerStopped: false
       };
       self.panel.showWorldInfoPanel();
       self.drawScore(true);
@@ -1400,7 +1402,7 @@ var World_Base = function() {
       if (options.triggerType === 'robotEnter') {
         scored = self.checkRobotInZone(zoneMesh);
       } else if (options.triggerType === 'objectInZone') {
-        scored = self.checkObjectInZone(zoneMesh);
+        scored = self.checkObjectInZone(zoneMesh, zoneState);
       } else if (options.triggerType === 'objectDwell') {
         scored = self.checkObjectDwell(zoneMesh, zoneState, options);
       }
@@ -1434,11 +1436,17 @@ var World_Base = function() {
   };
 
   // Check if any ungripped magnetic object is inside the zone
-  self.checkObjectInZone = function(zoneMesh) {
+  self.checkObjectInZone = function(zoneMesh, zoneState) {
     let meshes = babylon.scene.meshes;
     for (let i = 0; i < meshes.length; i++) {
       let mesh = meshes[i];
       if (!mesh.isMagnetic) continue;
+
+      // Skip objects already scored in this zone
+      if (zoneState && zoneState.scoredMeshIds) {
+        let meshId = mesh.uniqueId || mesh.id;
+        if (zoneState.scoredMeshIds[meshId]) continue;
+      }
 
       // Skip if currently gripped by any robot
       let isGripped = false;
@@ -1457,6 +1465,11 @@ var World_Base = function() {
       if (isGripped) continue;
 
       if (zoneMesh.intersectsPoint(mesh.absolutePosition)) {
+        // Record this object as scored in the zone
+        if (zoneState && zoneState.scoredMeshIds) {
+          let meshId = mesh.uniqueId || mesh.id;
+          zoneState.scoredMeshIds[meshId] = true;
+        }
         return true;
       }
     }
@@ -1465,7 +1478,7 @@ var World_Base = function() {
 
   // Check if object dwells in zone for required time
   self.checkObjectDwell = function(zoneMesh, zoneState, options) {
-    let objectInZone = self.checkObjectInZone(zoneMesh);
+    let objectInZone = self.checkObjectInZone(zoneMesh, zoneState);
 
     if (objectInZone) {
       if (zoneState.dwellStart === null) {
@@ -1549,7 +1562,7 @@ var World_Base = function() {
     if (action === 'stopRobot') {
       self.panel.stopSim(true);
     } else if (action === 'stopTimer') {
-      self.scoreState.running = false;
+      self.scoreState.timerStopped = true;
     }
   };
 
@@ -1611,6 +1624,7 @@ var World_Base = function() {
   // Render the timer
   self.renderTimer = function(delta) {
     if (typeof self.processedOptions != 'undefined' && self.processedOptions.timer != 'none') {
+      if (self.scoreState.timerStopped) return;
       self.drawTimer(false);
     }
   };
