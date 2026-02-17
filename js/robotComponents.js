@@ -2448,8 +2448,11 @@ function ClawActuator(scene, parent, pos, rot, port, options) {
 
   // Grip state
   this.grippedMesh = null;
-  this.gripOffset = null;
+  this.gripLocalOffset = null;
+  this.grippedOriginalImpostorType = null;
   this.grippedOriginalMass = null;
+  this.grippedOriginalFriction = null;
+  this.grippedOriginalRestitution = null;
   this.magneticMeshes = [];
   this.wasOpenSinceLastGrip = true; // Must open gripper before it can grab
 
@@ -2908,19 +2911,26 @@ function ClawActuator(scene, parent, pos, rot, port, options) {
     }
     if (!physicsTarget.physicsImpostor) return;
 
-    // Store original mass to restore on release
+    // Store original physics properties to restore on release
+    self.grippedOriginalImpostorType = physicsTarget.physicsImpostor.type;
     self.grippedOriginalMass = physicsTarget.physicsImpostor.mass;
+    self.grippedOriginalFriction = physicsTarget.physicsImpostor.friction;
+    self.grippedOriginalRestitution = physicsTarget.physicsImpostor.restitution;
 
     // Compute the grip center (midpoint of jaw tips)
     let gripCenter = self.getGripCenter();
 
-    // Store the offset from grip center to object (in world space)
-    self.gripOffset = physicsTarget.absolutePosition.subtract(gripCenter);
+    // Compute offset in local space (relative to body orientation) so it
+    // rotates correctly when the robot turns
+    let worldOffset = physicsTarget.absolutePosition.subtract(gripCenter);
+    let bodyQuatInverse = BABYLON.Quaternion.Inverse(self.body.absoluteRotationQuaternion);
+    self.gripLocalOffset = BABYLON.Vector3.Zero();
+    worldOffset.rotateByQuaternionToRef(bodyQuatInverse, self.gripLocalOffset);
 
-    // Make the object kinematic (mass 0) so we control its position directly
-    physicsTarget.physicsImpostor.setMass(0);
-    physicsTarget.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-    physicsTarget.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
+    // Remove from physics world entirely to prevent collision forces
+    // between the gripped object and the robot body/jaw pivots
+    physicsTarget.physicsImpostor.dispose();
+    physicsTarget.physicsImpostor = null;
 
     self.grippedMesh = physicsTarget;
     // Must open gripper again before it can grab another object
@@ -2948,28 +2958,43 @@ function ClawActuator(scene, parent, pos, rot, port, options) {
   };
 
   this.updateGrippedPosition = function() {
-    if (!self.grippedMesh || !self.grippedMesh.physicsImpostor) return;
+    if (!self.grippedMesh) return;
 
-    // Compute current grip center and apply stored offset
+    // Compute current grip center
     let gripCenter = self.getGripCenter();
-    let targetPos = gripCenter.add(self.gripOffset);
 
-    // Move the gripped object to follow the grip center
+    // Convert local offset back to world space using current body orientation
+    let worldOffset = BABYLON.Vector3.Zero();
+    self.gripLocalOffset.rotateByQuaternionToRef(self.body.absoluteRotationQuaternion, worldOffset);
+
+    // Set mesh position directly (no physics body exists, so no desync)
+    let targetPos = gripCenter.add(worldOffset);
     self.grippedMesh.position.copyFrom(targetPos);
-    self.grippedMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
-    self.grippedMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
   };
 
   this.releaseGrip = function() {
-    if (self.grippedMesh && self.grippedMesh.physicsImpostor) {
-      // Restore original mass so the object becomes dynamic again
-      self.grippedMesh.physicsImpostor.setMass(self.grippedOriginalMass || 1);
+    if (self.grippedMesh) {
+      // Recreate the physics impostor with stored original properties
+      self.grippedMesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        self.grippedMesh,
+        self.grippedOriginalImpostorType,
+        {
+          mass: self.grippedOriginalMass || 1,
+          friction: self.grippedOriginalFriction || 0.1,
+          restitution: self.grippedOriginalRestitution || 0.1
+        },
+        scene
+      );
+      // Zero out velocity so the object doesn't fly away
       self.grippedMesh.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
       self.grippedMesh.physicsImpostor.setAngularVelocity(BABYLON.Vector3.Zero());
     }
     self.grippedMesh = null;
-    self.gripOffset = null;
+    self.gripLocalOffset = null;
+    self.grippedOriginalImpostorType = null;
     self.grippedOriginalMass = null;
+    self.grippedOriginalFriction = null;
+    self.grippedOriginalRestitution = null;
 
     // Update grip indicator
     if (typeof simPanel !== 'undefined' && simPanel.updateGripIndicator) {
