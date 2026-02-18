@@ -59,7 +59,7 @@ var builder = new function() {
       {
         option: 'groundFriction',
         type: 'slider',
-        min: '0',
+        min: '0.1',
         max: '10',
         step: '0.1',
       },
