@@ -32,6 +32,9 @@
           <label for="zip">Browse...</label>
           <input type="file" id="zip" accept="application/zip,.zip">
         </div>
+        <div style="margin-top:6px;">
+          <button id="browseBots" style="padding:3px 10px;font-size:12px;cursor:pointer;background:#2a6;color:#fff;border:1px solid #185;border-radius:3px;">Browse Shared Bots</button>
+        </div>
       </div>
     </div>
   </main>
@@ -157,6 +160,148 @@
         skulpt.runPython(pythonProgram);
       }
     };
+
+    // Browse Shared Bots
+    (function() {
+      var browseBotBtn = document.getElementById('browseBots');
+      if (!browseBotBtn) return;
+
+      browseBotBtn.addEventListener('click', function() {
+        // Build modal overlay
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+
+        var modal = document.createElement('div');
+        modal.style.cssText = 'background:#1a1a2e;color:#eee;border-radius:8px;padding:16px;max-width:340px;width:90%;max-height:70vh;display:flex;flex-direction:column;font-family:sans-serif;';
+
+        var header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;';
+        header.innerHTML = '<strong style="font-size:14px;">Shared BattleBots</strong>';
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = 'X';
+        closeBtn.style.cssText = 'background:none;border:none;color:#eee;cursor:pointer;font-size:14px;padding:2px 6px;';
+        closeBtn.onclick = function() { overlay.remove(); };
+        header.appendChild(closeBtn);
+        modal.appendChild(header);
+
+        var list = document.createElement('div');
+        list.style.cssText = 'overflow-y:auto;flex:1;';
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Loading...</div>';
+        modal.appendChild(list);
+
+        overlay.appendChild(modal);
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) overlay.remove();
+        });
+        document.body.appendChild(overlay);
+
+        // Fetch shared robots
+        var apiBase = window.location.origin;
+        fetch(apiBase + '/api/v1/battlebots/robots')
+          .then(function(res) { return res.json(); })
+          .then(function(result) {
+            var bots = result.data || result;
+            if (!bots || bots.length === 0) {
+              list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No shared bots available yet.</div>';
+              return;
+            }
+
+            list.innerHTML = '';
+            bots.forEach(function(bot) {
+              var item = document.createElement('div');
+              item.style.cssText = 'display:flex;align-items:center;padding:8px;border-bottom:1px solid #333;cursor:pointer;gap:8px;';
+              item.onmouseenter = function() { item.style.background = '#2a2a4e'; };
+              item.onmouseleave = function() { item.style.background = 'none'; };
+
+              var preview = '';
+              if (bot.preview_path) {
+                preview = '<img src="' + bot.preview_path + '" style="width:40px;height:40px;object-fit:cover;border-radius:4px;background:#333;" onerror="this.style.display=\'none\'">';
+              } else {
+                preview = '<div style="width:40px;height:40px;background:#333;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;">&#129302;</div>';
+              }
+
+              item.innerHTML = preview +
+                '<div style="flex:1;min-width:0;">' +
+                  '<div style="font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (bot.title || 'Untitled Bot') + '</div>' +
+                  '<div style="font-size:11px;color:#888;">' + (bot.owner_name || 'Anonymous') + '</div>' +
+                '</div>';
+
+              item.addEventListener('click', function() {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Loading bot...</div>';
+                loadSharedBot(bot.share_token, overlay);
+              });
+
+              list.appendChild(item);
+            });
+          })
+          .catch(function(err) {
+            list.innerHTML = '<div style="text-align:center;padding:20px;color:#f66;">Failed to load bots.</div>';
+            console.error('Browse bots error:', err);
+          });
+      });
+
+      function loadSharedBot(shareToken, overlay) {
+        var apiBase = window.location.origin;
+        fetch(apiBase + '/api/v1/gallery/' + shareToken)
+          .then(function(res) { return res.json(); })
+          .then(function(result) {
+            var project = result.data || result;
+            var projectData = project.project_data || project.data;
+
+            if (typeof projectData === 'string') {
+              projectData = JSON.parse(projectData);
+            }
+
+            if (!projectData) {
+              alert('Could not load bot data.');
+              overlay.remove();
+              return;
+            }
+
+            // Apply robot options and python code
+            if (projectData.robotOptions) {
+              robot.options = projectData.robotOptions;
+
+              // Set paintball color to match player
+              function setColor(components) {
+                components.forEach(function(component) {
+                  if (component.type == 'PaintballLauncherActuator') {
+                    if (component.options == null) {
+                      component.options = {};
+                    }
+                    component.options.color = player;
+                  }
+                  if (typeof component.components != 'undefined') {
+                    setColor(component.components);
+                  }
+                });
+              }
+              if (robot.options.components) {
+                setColor(robot.options.components);
+              }
+            }
+
+            if (projectData.pythonCode) {
+              pythonProgram = projectData.pythonCode;
+            }
+
+            // Set name
+            if (project.title) {
+              robot.name = project.title;
+            }
+
+            document.getElementById('zipFileName').value = (project.title || 'Shared Bot') + ' (shared)';
+
+            parent.arenaPanel.resetSim();
+            overlay.remove();
+          })
+          .catch(function(err) {
+            alert('Failed to load bot data.');
+            console.error('Load shared bot error:', err);
+            overlay.remove();
+          });
+      }
+    })();
   </script>
 </body>
 </html>
