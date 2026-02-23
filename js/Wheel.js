@@ -172,7 +172,20 @@ function Wheel(scene, parent, pos, rot, port, options) {
         pluginExtension = '.obj';
       }
 
-      BABYLON.SceneLoader.ImportMeshAsync(null, '', self.options.modelURL, scene, null, pluginExtension).then(function(results) {
+      // If no extension found in URL, detect via HEAD request Content-Type
+      (pluginExtension != null ? Promise.resolve(pluginExtension) :
+        fetch(self.options.modelURL, {method: 'HEAD'}).then(function(res) {
+          var ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (ct.includes('gltf-binary')) return '.glb';
+          if (ct.includes('gltf')) return '.gltf';
+          if (ct.includes('stl')) return '.stl';
+          if (ct.includes('wavefront')) return '.obj';
+          return null;
+        }).catch(function() { return null; })
+      ).then(function(ext) {
+        pluginExtension = ext;
+        return BABYLON.SceneLoader.ImportMeshAsync(null, '', self.options.modelURL, scene, null, pluginExtension);
+      }).then(function(results) {
         // Check if scene was disposed while loading
         if (scene.isDisposed) {
           return;

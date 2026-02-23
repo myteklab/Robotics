@@ -5521,11 +5521,33 @@ function DecorativeModel(scene, parent, pos, rot, options) {
     // Load the 3D model if URL is provided
     if (self.options.modelURL && self.options.modelURL !== '') {
       body.visibility = 0; // Hide placeholder
-      // Detect file extension from full URL (handles file.php?file=model.glb patterns)
+      // Detect file extension from URL
       var modelUrl = self.options.modelURL;
-      var urlForExt = modelUrl.split('#')[0];
-      var pluginExt = urlForExt.substring(urlForExt.lastIndexOf('.')).toLowerCase();
-      BABYLON.SceneLoader.ImportMeshAsync(null, '', modelUrl, scene, null, pluginExt).then(function(results) {
+      var urlLower = modelUrl.toLowerCase();
+      var pluginExt = null;
+      if (urlLower.includes('.stl')) {
+        pluginExt = '.stl';
+      } else if (urlLower.includes('.gltf')) {
+        pluginExt = '.gltf';
+      } else if (urlLower.includes('.glb')) {
+        pluginExt = '.glb';
+      } else if (urlLower.includes('.obj')) {
+        pluginExt = '.obj';
+      }
+      // If no extension found in URL, detect via HEAD request Content-Type
+      (pluginExt != null ? Promise.resolve(pluginExt) :
+        fetch(modelUrl, {method: 'HEAD'}).then(function(res) {
+          var ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (ct.includes('gltf-binary')) return '.glb';
+          if (ct.includes('gltf')) return '.gltf';
+          if (ct.includes('stl')) return '.stl';
+          if (ct.includes('wavefront')) return '.obj';
+          return null;
+        }).catch(function() { return null; })
+      ).then(function(ext) {
+        pluginExt = ext;
+        return BABYLON.SceneLoader.ImportMeshAsync(null, '', modelUrl, scene, null, pluginExt);
+      }).then(function(results) {
         var meshes = results.meshes;
         var modelScale = self.options.modelScale || 1;
         var isGLB = (pluginExt === '.glb' || pluginExt === '.gltf');

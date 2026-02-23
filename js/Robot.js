@@ -205,7 +205,20 @@ function Robot() {
           bodyPluginExtension = '.obj';
         }
 
-        BABYLON.SceneLoader.ImportMeshAsync(null, '', options.bodyModelURL, scene, null, bodyPluginExtension).then(function(results) {
+        // If no extension found in URL, detect via HEAD request Content-Type
+        (bodyPluginExtension != null ? Promise.resolve(bodyPluginExtension) :
+          fetch(options.bodyModelURL, {method: 'HEAD'}).then(function(res) {
+            var ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (ct.includes('gltf-binary')) return '.glb';
+            if (ct.includes('gltf')) return '.gltf';
+            if (ct.includes('stl')) return '.stl';
+            if (ct.includes('wavefront')) return '.obj';
+            return null;
+          }).catch(function() { return null; })
+        ).then(function(ext) {
+          bodyPluginExtension = ext;
+          return BABYLON.SceneLoader.ImportMeshAsync(null, '', options.bodyModelURL, scene, null, bodyPluginExtension);
+        }).then(function(results) {
           var meshes = results.meshes;
 
           // Compute model bounding box to auto-fit to body dimensions
