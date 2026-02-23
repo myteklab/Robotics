@@ -179,30 +179,6 @@ function Wheel(scene, parent, pos, rot, port, options) {
         }
         var meshes = results.meshes;
 
-        // GLTF/GLB: Strip __root__ node and convert Y-up to Z-up to match STL.
-        // Babylon.js GLTF loader adds __root__ with scale(1,1,-1) for handedness.
-        // BlocksCAD GLB exports Y-up vertices (glTF spec), STL exports Z-up.
-        if (pluginExtension === '.glb' || pluginExtension === '.gltf') {
-          if (meshes.length > 0 && meshes[0].name === '__root__') {
-            var rootNode = meshes[0];
-            var rootChildren = rootNode.getChildren();
-            for (var c = 0; c < rootChildren.length; c++) {
-              rootChildren[c].parent = null;
-            }
-            rootNode.dispose();
-            meshes = meshes.slice(1);
-          }
-          for (var i = 0; i < meshes.length; i++) {
-            if (meshes[i].rotationQuaternion) {
-              meshes[i].rotationQuaternion = null;
-            }
-          }
-          // Rotate -90° X to convert Y-up (glTF) to Z-up (matching STL/OpenSCAD)
-          if (meshes.length > 0) {
-            meshes[0].rotation.x = -Math.PI / 2;
-          }
-        }
-
         // Compute bounding box to auto-fit model to wheel dimensions
         var min = null;
         var max = null;
@@ -241,7 +217,14 @@ function Wheel(scene, parent, pos, rot, port, options) {
           // Otherwise apply both fitScale and modelScale
           var parentIsScaled = self.options.modelScale && self.options.modelScale != 1;
           var finalScale = parentIsScaled ? fitScale : (fitScale * (self.options.modelScale || 1));
-          meshes[0].scaling.setAll(finalScale);
+          var isGLB = (pluginExtension === '.glb' || pluginExtension === '.gltf');
+          if (isGLB) {
+            meshes[0].scaling.x *= finalScale;
+            meshes[0].scaling.y *= finalScale;
+            meshes[0].scaling.z *= finalScale;
+          } else {
+            meshes[0].scaling.setAll(finalScale);
+          }
 
           // Center the model on the wheel
           var center = min.add(max).scale(0.5);
@@ -251,7 +234,15 @@ function Wheel(scene, parent, pos, rot, port, options) {
         } else {
           // No bounding info - if parent scaled, use 1, otherwise use modelScale
           var parentIsScaled = self.options.modelScale && self.options.modelScale != 1;
-          meshes[0].scaling.setAll(parentIsScaled ? 1 : (self.options.modelScale || 1));
+          var fallbackScale = parentIsScaled ? 1 : (self.options.modelScale || 1);
+          var isGLB = (pluginExtension === '.glb' || pluginExtension === '.gltf');
+          if (isGLB) {
+            meshes[0].scaling.x *= fallbackScale;
+            meshes[0].scaling.y *= fallbackScale;
+            meshes[0].scaling.z *= fallbackScale;
+          } else {
+            meshes[0].scaling.setAll(fallbackScale);
+          }
         }
 
         // Apply color material to meshes without materials (e.g. STL files)

@@ -273,7 +273,14 @@ function Robot() {
               finalScale = fitScale * (options.bodyModelScale || 1);
             }
 
-            meshes[0].scaling.setAll(finalScale);
+            var isGLB = (bodyPluginExtension === '.glb' || bodyPluginExtension === '.gltf');
+            if (isGLB) {
+              meshes[0].scaling.x *= finalScale;
+              meshes[0].scaling.y *= finalScale;
+              meshes[0].scaling.z *= finalScale;
+            } else {
+              meshes[0].scaling.setAll(finalScale);
+            }
 
             // Center the model on the body
             var center = min.add(max).scale(0.5);
@@ -281,7 +288,15 @@ function Robot() {
             meshes[0].position.y = -center.y * finalScale + (options.bodyModelOffsetY || 0);
             meshes[0].position.z = -center.z * finalScale;
           } else {
-            meshes[0].scaling.setAll(options.bodyModelScale || 1);
+            var fallbackScale = options.bodyModelScale || 1;
+            var isGLB = (bodyPluginExtension === '.glb' || bodyPluginExtension === '.gltf');
+            if (isGLB) {
+              meshes[0].scaling.x *= fallbackScale;
+              meshes[0].scaling.y *= fallbackScale;
+              meshes[0].scaling.z *= fallbackScale;
+            } else {
+              meshes[0].scaling.setAll(fallbackScale);
+            }
             meshes[0].position.y = options.bodyModelOffsetY || 0;
           }
 

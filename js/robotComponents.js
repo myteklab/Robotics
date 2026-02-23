@@ -5527,7 +5527,15 @@ function DecorativeModel(scene, parent, pos, rot, options) {
       var pluginExt = urlForExt.substring(urlForExt.lastIndexOf('.')).toLowerCase();
       BABYLON.SceneLoader.ImportMeshAsync(null, '', modelUrl, scene, null, pluginExt).then(function(results) {
         var meshes = results.meshes;
-        meshes[0].scaling.setAll(self.options.modelScale || 1);
+        var modelScale = self.options.modelScale || 1;
+        var isGLB = (pluginExt === '.glb' || pluginExt === '.gltf');
+        if (isGLB) {
+          meshes[0].scaling.x *= modelScale;
+          meshes[0].scaling.y *= modelScale;
+          meshes[0].scaling.z *= modelScale;
+        } else {
+          meshes[0].scaling.setAll(modelScale);
+        }
         // Apply model rotation if specified (in degrees)
         if (self.options.modelRotation && self.options.modelRotation.length === 3) {
           var degToRad = Math.PI / 180;
