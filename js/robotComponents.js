@@ -5534,14 +5534,15 @@ function DecorativeModel(scene, parent, pos, rot, options) {
       } else if (urlLower.includes('.obj')) {
         pluginExt = '.obj';
       }
-      // If no extension found in URL, detect via HEAD request Content-Type
+      // If no extension found in URL, detect via HEAD request headers
       (pluginExt != null ? Promise.resolve(pluginExt) :
         fetch(modelUrl, {method: 'HEAD'}).then(function(res) {
           var ct = (res.headers.get('content-type') || '').toLowerCase();
-          if (ct.includes('gltf-binary')) return '.glb';
-          if (ct.includes('gltf')) return '.gltf';
-          if (ct.includes('stl')) return '.stl';
-          if (ct.includes('wavefront')) return '.obj';
+          var cd = (res.headers.get('content-disposition') || '').toLowerCase();
+          if (ct.includes('gltf-binary') || cd.includes('.glb')) return '.glb';
+          if (ct.includes('gltf') || cd.includes('.gltf')) return '.gltf';
+          if (ct.includes('stl') || cd.includes('.stl')) return '.stl';
+          if (ct.includes('wavefront') || cd.includes('.obj')) return '.obj';
           return null;
         }).catch(function() { return null; })
       ).then(function(ext) {
