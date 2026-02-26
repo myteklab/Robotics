@@ -493,27 +493,40 @@
             var used = isBotUsed(bot.share_token);
             card.className = 'bot-card' + (used ? ' used-bot' : '') + (used && _hideUsed ? ' hide-used' : '');
 
-            var previewHtml;
+            var previewEl = document.createElement('div');
+            previewEl.className = 'bot-card-preview';
             if (bot.preview_path) {
-              previewHtml = '<div class="bot-card-preview"><img src="/storage/' + escapeHtml(bot.preview_path) + '" onerror="this.parentNode.innerHTML=\'<div class=fallback>&#129302;</div>\'"></div>';
+              var img = document.createElement('img');
+              previewEl.appendChild(img);
+              (function(imgEl, path) {
+                fetch('/storage/' + path)
+                  .then(function(r) { return r.blob(); })
+                  .then(function(blob) { imgEl.src = URL.createObjectURL(blob); })
+                  .catch(function() {
+                    imgEl.parentNode.innerHTML = '<div class="fallback">&#129302;</div>';
+                  });
+              })(img, bot.preview_path);
             } else {
-              previewHtml = '<div class="bot-card-preview"><div class="fallback">&#129302;</div></div>';
+              previewEl.innerHTML = '<div class="fallback">&#129302;</div>';
             }
 
             var views = bot.view_count || 0;
             var likes = bot.like_count || 0;
             var dateStr = formatDate(bot.created_at);
 
-            card.innerHTML = previewHtml +
-              '<div class="bot-card-body">' +
+            card.appendChild(previewEl);
+
+            var body = document.createElement('div');
+            body.className = 'bot-card-body';
+            body.innerHTML =
                 '<div class="bot-card-title">' + escapeHtml(bot.title || 'Untitled Bot') + '</div>' +
                 '<div class="bot-card-owner">' + escapeHtml(bot.owner_name || 'Anonymous') + '</div>' +
                 '<div class="bot-card-stats">' +
                   '<span title="Views">&#128065; ' + views + '</span>' +
                   '<span title="Likes">&#10084; ' + likes + '</span>' +
                   '<span>' + escapeHtml(dateStr) + '</span>' +
-                '</div>' +
-              '</div>';
+                '</div>';
+            card.appendChild(body);
 
             card.addEventListener('click', function() {
               selectBrowseBot(bot.share_token, card, grid);
