@@ -172,6 +172,39 @@
     }
     .bot-card-stats span { white-space: nowrap; }
 
+    .browse-bots-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .browse-bots-toggle input {
+      accent-color: #7c8fff;
+      cursor: pointer;
+    }
+    .browse-bots-toggle:hover { color: #bbb; }
+
+    .bot-card.used-bot .bot-card-preview::after {
+      content: 'USED';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(124,143,255,0.85);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+    .bot-card-preview { position: relative; }
+
+    .bot-card.hide-used { display: none; }
+
     .browse-bots-empty {
       text-align: center;
       padding: 40px 20px;
@@ -301,6 +334,25 @@
     var _browseBotPlayer = null;
     var _browseDebounce = null;
     var _browseOverlay = null;
+    var _hideUsed = false;
+
+    function getUsedBots() {
+      try {
+        return JSON.parse(localStorage.getItem('arena_used_bots') || '[]');
+      } catch(e) { return []; }
+    }
+
+    function markBotUsed(shareToken) {
+      var used = getUsedBots();
+      if (used.indexOf(shareToken) === -1) {
+        used.push(shareToken);
+        localStorage.setItem('arena_used_bots', JSON.stringify(used));
+      }
+    }
+
+    function isBotUsed(shareToken) {
+      return getUsedBots().indexOf(shareToken) !== -1;
+    }
 
     function openBrowseBots(player) {
       _browseBotPlayer = player;
@@ -348,6 +400,19 @@
       });
       toolbar.appendChild(sortSelect);
 
+      var toggleLabel = document.createElement('label');
+      toggleLabel.className = 'browse-bots-toggle';
+      var toggleCb = document.createElement('input');
+      toggleCb.type = 'checkbox';
+      toggleCb.checked = _hideUsed;
+      toggleCb.addEventListener('change', function() {
+        _hideUsed = toggleCb.checked;
+        applyUsedFilter(grid);
+      });
+      toggleLabel.appendChild(toggleCb);
+      toggleLabel.appendChild(document.createTextNode('Hide used'));
+      toolbar.appendChild(toggleLabel);
+
       modal.appendChild(toolbar);
 
       // Grid
@@ -391,6 +456,17 @@
       }
     }
 
+    function applyUsedFilter(grid) {
+      var cards = grid.querySelectorAll('.bot-card');
+      for (var i = 0; i < cards.length; i++) {
+        if (_hideUsed && cards[i].classList.contains('used-bot')) {
+          cards[i].classList.add('hide-used');
+        } else {
+          cards[i].classList.remove('hide-used');
+        }
+      }
+    }
+
     function fetchBrowseBots(search, sort, grid) {
       var apiBase = window.location.origin;
       var url = apiBase + '/api/v1/battlebots/robots?sort=' + encodeURIComponent(sort);
@@ -414,11 +490,12 @@
           grid.innerHTML = '';
           bots.forEach(function(bot) {
             var card = document.createElement('div');
-            card.className = 'bot-card';
+            var used = isBotUsed(bot.share_token);
+            card.className = 'bot-card' + (used ? ' used-bot' : '') + (used && _hideUsed ? ' hide-used' : '');
 
             var previewHtml;
             if (bot.preview_path) {
-              previewHtml = '<div class="bot-card-preview"><img src="/' + escapeHtml(bot.preview_path) + '" onerror="this.parentNode.innerHTML=\'<div class=fallback>&#129302;</div>\'"></div>';
+              previewHtml = '<div class="bot-card-preview"><img src="/storage/' + escapeHtml(bot.preview_path) + '" onerror="this.parentNode.innerHTML=\'<div class=fallback>&#129302;</div>\'"></div>';
             } else {
               previewHtml = '<div class="bot-card-preview"><div class="fallback">&#129302;</div></div>';
             }
@@ -479,6 +556,9 @@
           }
 
           var title = project.title || 'Shared Bot';
+
+          // Record this bot as used
+          markBotUsed(shareToken);
 
           // Call into the correct player iframe
           if (playerFrames[_browseBotPlayer] && playerFrames[_browseBotPlayer].loadBotData) {
