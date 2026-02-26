@@ -90,7 +90,7 @@
     .browse-bots-search:focus { border-color: #7c8fff; }
     .browse-bots-search::placeholder { color: #666; }
 
-    .browse-bots-sort {
+    .browse-bots-sort, .browse-bots-owner {
       background: #252540;
       border: 1px solid #3a3a5e;
       border-radius: 6px;
@@ -99,6 +99,20 @@
       font-size: 12px;
       cursor: pointer;
       outline: none;
+    }
+    .browse-bots-owner {
+      max-width: 120px;
+      cursor: text;
+    }
+    .browse-bots-owner:focus { border-color: #7c8fff; }
+    .browse-bots-owner::placeholder { color: #666; }
+
+    .browse-bots-loading-more {
+      text-align: center;
+      padding: 16px;
+      color: #666;
+      font-size: 12px;
+      grid-column: 1 / -1;
     }
 
     .browse-bots-grid {
@@ -357,8 +371,17 @@
 
     var _browseBotPlayer = null;
     var _browseDebounce = null;
+    var _browseOwnerDebounce = null;
     var _browseOverlay = null;
     var _hideUsed = false;
+    var _browseOffset = 0;
+    var _browseLoading = false;
+    var _browseHasMore = true;
+    var _browsePageSize = 20;
+    var _browseSearchInput = null;
+    var _browseSortSelect = null;
+    var _browseOwnerInput = null;
+    var _browseGrid = null;
 
     function getUsedBots() {
       try {
@@ -400,7 +423,7 @@
       header.appendChild(closeBtn);
       modal.appendChild(header);
 
-      // Toolbar: search + sort
+      // Toolbar: search + owner + sort + toggle
       var toolbar = document.createElement('div');
       toolbar.className = 'browse-bots-toolbar';
 
@@ -410,18 +433,31 @@
       searchInput.placeholder = 'Search bots...';
       searchInput.addEventListener('input', function() {
         clearTimeout(_browseDebounce);
-        _browseDebounce = setTimeout(function() {
-          fetchBrowseBots(searchInput.value, sortSelect.value, grid);
-        }, 300);
+        _browseDebounce = setTimeout(function() { resetAndFetch(); }, 300);
       });
+      _browseSearchInput = searchInput;
       toolbar.appendChild(searchInput);
+
+      var ownerInput = document.createElement('input');
+      ownerInput.type = 'text';
+      ownerInput.className = 'browse-bots-owner';
+      ownerInput.placeholder = 'Creator...';
+      ownerInput.addEventListener('input', function() {
+        clearTimeout(_browseOwnerDebounce);
+        _browseOwnerDebounce = setTimeout(function() { resetAndFetch(); }, 300);
+      });
+      _browseOwnerInput = ownerInput;
+      toolbar.appendChild(ownerInput);
 
       var sortSelect = document.createElement('select');
       sortSelect.className = 'browse-bots-sort';
-      sortSelect.innerHTML = '<option value="recent">Newest</option><option value="popular">Popular</option>';
-      sortSelect.addEventListener('change', function() {
-        fetchBrowseBots(searchInput.value, sortSelect.value, grid);
-      });
+      sortSelect.innerHTML =
+        '<option value="recent">Newest</option>' +
+        '<option value="oldest">Oldest</option>' +
+        '<option value="popular">Most Liked</option>' +
+        '<option value="most_viewed">Most Viewed</option>';
+      sortSelect.addEventListener('change', function() { resetAndFetch(); });
+      _browseSortSelect = sortSelect;
       toolbar.appendChild(sortSelect);
 
       var toggleLabel = document.createElement('label');
@@ -446,7 +482,16 @@
       var grid = document.createElement('div');
       grid.className = 'browse-bots-grid';
       grid.innerHTML = '<div class="browse-bots-empty">Loading...</div>';
+      _browseGrid = grid;
       modal.appendChild(grid);
+
+      // Infinite scroll
+      grid.addEventListener('scroll', function() {
+        if (_browseLoading || !_browseHasMore) return;
+        if (grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 100) {
+          loadMoreBots();
+        }
+      });
 
       overlay.appendChild(modal);
       overlay.addEventListener('click', function(e) {
@@ -463,7 +508,18 @@
       document.addEventListener('keydown', _browseEscHandler);
 
       // Initial fetch
-      fetchBrowseBots('', 'recent', grid);
+      resetAndFetch();
+    }
+
+    function resetAndFetch() {
+      _browseOffset = 0;
+      _browseHasMore = true;
+      _browseGrid.innerHTML = '<div class="browse-bots-empty">Loading...</div>';
+      fetchBrowseBots(false);
+    }
+
+    function loadMoreBots() {
+      fetchBrowseBots(true);
     }
 
     function _browseEscHandler(e) {
@@ -494,27 +550,62 @@
       }
     }
 
-    function fetchBrowseBots(search, sort, grid) {
-      var apiBase = window.location.origin;
-      var url = apiBase + '/api/v1/battlebots/robots?sort=' + encodeURIComponent(sort);
-      if (search) {
-        url += '&search=' + encodeURIComponent(search);
-      }
+    function fetchBrowseBots(append) {
+      if (_browseLoading) return;
+      _browseLoading = true;
 
-      grid.innerHTML = '<div class="browse-bots-empty">Loading...</div>';
+      var grid = _browseGrid;
+      var search = _browseSearchInput.value;
+      var sort = _browseSortSelect.value;
+      var owner = _browseOwnerInput.value.trim();
+
+      var apiBase = window.location.origin;
+      var url = apiBase + '/api/v1/battlebots/robots?sort=' + encodeURIComponent(sort) +
+        '&limit=' + _browsePageSize + '&offset=' + _browseOffset;
+      if (search) url += '&search=' + encodeURIComponent(search);
+      if (owner) url += '&owner=' + encodeURIComponent(owner);
+
+      if (append) {
+        // Remove any existing "loading more" indicator
+        var existing = grid.querySelector('.browse-bots-loading-more');
+        if (existing) existing.remove();
+        var loader = document.createElement('div');
+        loader.className = 'browse-bots-loading-more';
+        loader.textContent = 'Loading more...';
+        grid.appendChild(loader);
+      }
 
       fetch(url)
         .then(function(res) { return res.json(); })
         .then(function(result) {
           var bots = result.data || result;
+
+          // Remove loading indicator
+          var loadingEl = grid.querySelector('.browse-bots-loading-more');
+          if (loadingEl) loadingEl.remove();
+
+          if (!append) {
+            // Clear grid for fresh results
+            grid.innerHTML = '';
+          }
+
           if (!bots || bots.length === 0) {
-            grid.innerHTML = '<div class="browse-bots-empty">' +
-              (search ? 'No bots match your search.' : 'No shared bots available yet.') +
-              '</div>';
+            _browseHasMore = false;
+            if (!append) {
+              grid.innerHTML = '<div class="browse-bots-empty">' +
+                ((search || owner) ? 'No bots match your filters.' : 'No shared bots available yet.') +
+                '</div>';
+            }
+            _browseLoading = false;
             return;
           }
 
-          grid.innerHTML = '';
+          if (bots.length < _browsePageSize) {
+            _browseHasMore = false;
+          }
+
+          _browseOffset += bots.length;
+
           bots.forEach(function(bot) {
             var card = document.createElement('div');
             var used = isBotUsed(bot.share_token);
@@ -548,9 +639,16 @@
 
             grid.appendChild(card);
           });
+
+          _browseLoading = false;
         })
         .catch(function(err) {
-          grid.innerHTML = '<div class="browse-bots-error">Failed to load bots.</div>';
+          var loadingEl = grid.querySelector('.browse-bots-loading-more');
+          if (loadingEl) loadingEl.remove();
+          if (!append) {
+            grid.innerHTML = '<div class="browse-bots-error">Failed to load bots.</div>';
+          }
+          _browseLoading = false;
           console.error('Browse bots error:', err);
         });
     }
