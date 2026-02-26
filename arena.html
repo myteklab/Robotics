@@ -25,6 +25,166 @@
   <script src="js/common/widgets.js"></script>
 
   <title>Robotics Arena</title>
+
+  <style>
+    .browse-bots-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .browse-bots-overlay.active { opacity: 1; }
+
+    .browse-bots-modal {
+      background: #1a1a2e;
+      color: #eee;
+      border-radius: 12px;
+      max-width: 720px;
+      width: 94%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .browse-bots-overlay.active .browse-bots-modal { transform: scale(1); }
+
+    .browse-bots-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid #2a2a4e;
+    }
+    .browse-bots-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .browse-bots-close {
+      background: none; border: none; color: #888; cursor: pointer;
+      font-size: 20px; padding: 0 4px; line-height: 1;
+    }
+    .browse-bots-close:hover { color: #eee; }
+
+    .browse-bots-toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      border-bottom: 1px solid #2a2a4e;
+      align-items: center;
+    }
+    .browse-bots-search {
+      flex: 1;
+      background: #252540;
+      border: 1px solid #3a3a5e;
+      border-radius: 6px;
+      color: #eee;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+    .browse-bots-search:focus { border-color: #7c8fff; }
+    .browse-bots-search::placeholder { color: #666; }
+
+    .browse-bots-sort {
+      background: #252540;
+      border: 1px solid #3a3a5e;
+      border-radius: 6px;
+      color: #eee;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .browse-bots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .browse-bots-grid::-webkit-scrollbar { width: 6px; }
+    .browse-bots-grid::-webkit-scrollbar-track { background: transparent; }
+    .browse-bots-grid::-webkit-scrollbar-thumb { background: #3a3a5e; border-radius: 3px; }
+
+    .bot-card {
+      background: #252540;
+      border: 1px solid #3a3a5e;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      overflow: hidden;
+    }
+    .bot-card:hover {
+      transform: translateY(-2px);
+      border-color: #7c8fff;
+    }
+    .bot-card.loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .bot-card-preview {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #1e1e36;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .bot-card-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .bot-card-preview .fallback {
+      font-size: 36px;
+      opacity: 0.4;
+    }
+
+    .bot-card-body { padding: 10px 12px; }
+    .bot-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bot-card-owner {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .bot-card-stats {
+      font-size: 11px;
+      color: #666;
+      margin-top: 6px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .bot-card-stats span { white-space: nowrap; }
+
+    .browse-bots-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+      grid-column: 1 / -1;
+    }
+    .browse-bots-error {
+      text-align: center;
+      padding: 40px 20px;
+      color: #f66;
+      grid-column: 1 / -1;
+    }
+  </style>
 </head>
 
 <body>
@@ -123,6 +283,217 @@
       if (ele) {
         playerFrames.push(ele.contentWindow);
       }
+    }
+    // Browse Shared Bots - full-screen modal
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      var d = new Date(dateStr);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    }
+
+    var _browseBotPlayer = null;
+    var _browseDebounce = null;
+    var _browseOverlay = null;
+
+    function openBrowseBots(player) {
+      _browseBotPlayer = player;
+
+      // Create overlay
+      var overlay = document.createElement('div');
+      overlay.className = 'browse-bots-overlay';
+      _browseOverlay = overlay;
+
+      var modal = document.createElement('div');
+      modal.className = 'browse-bots-modal';
+
+      // Header
+      var header = document.createElement('div');
+      header.className = 'browse-bots-header';
+      header.innerHTML = '<h3>Browse Shared Bots</h3>';
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'browse-bots-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.onclick = closeBrowseBots;
+      header.appendChild(closeBtn);
+      modal.appendChild(header);
+
+      // Toolbar: search + sort
+      var toolbar = document.createElement('div');
+      toolbar.className = 'browse-bots-toolbar';
+
+      var searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.className = 'browse-bots-search';
+      searchInput.placeholder = 'Search bots...';
+      searchInput.addEventListener('input', function() {
+        clearTimeout(_browseDebounce);
+        _browseDebounce = setTimeout(function() {
+          fetchBrowseBots(searchInput.value, sortSelect.value, grid);
+        }, 300);
+      });
+      toolbar.appendChild(searchInput);
+
+      var sortSelect = document.createElement('select');
+      sortSelect.className = 'browse-bots-sort';
+      sortSelect.innerHTML = '<option value="recent">Newest</option><option value="popular">Popular</option>';
+      sortSelect.addEventListener('change', function() {
+        fetchBrowseBots(searchInput.value, sortSelect.value, grid);
+      });
+      toolbar.appendChild(sortSelect);
+
+      modal.appendChild(toolbar);
+
+      // Grid
+      var grid = document.createElement('div');
+      grid.className = 'browse-bots-grid';
+      grid.innerHTML = '<div class="browse-bots-empty">Loading...</div>';
+      modal.appendChild(grid);
+
+      overlay.appendChild(modal);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeBrowseBots();
+      });
+      document.body.appendChild(overlay);
+
+      // Trigger animation
+      requestAnimationFrame(function() {
+        overlay.classList.add('active');
+      });
+
+      // Escape key
+      document.addEventListener('keydown', _browseEscHandler);
+
+      // Initial fetch
+      fetchBrowseBots('', 'recent', grid);
+    }
+
+    function _browseEscHandler(e) {
+      if (e.key === 'Escape') closeBrowseBots();
+    }
+
+    function closeBrowseBots() {
+      document.removeEventListener('keydown', _browseEscHandler);
+      if (_browseOverlay) {
+        _browseOverlay.classList.remove('active');
+        setTimeout(function() {
+          if (_browseOverlay && _browseOverlay.parentNode) {
+            _browseOverlay.parentNode.removeChild(_browseOverlay);
+          }
+          _browseOverlay = null;
+        }, 200);
+      }
+    }
+
+    function fetchBrowseBots(search, sort, grid) {
+      var apiBase = window.location.origin;
+      var url = apiBase + '/api/v1/battlebots/robots?sort=' + encodeURIComponent(sort);
+      if (search) {
+        url += '&search=' + encodeURIComponent(search);
+      }
+
+      grid.innerHTML = '<div class="browse-bots-empty">Loading...</div>';
+
+      fetch(url)
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+          var bots = result.data || result;
+          if (!bots || bots.length === 0) {
+            grid.innerHTML = '<div class="browse-bots-empty">' +
+              (search ? 'No bots match your search.' : 'No shared bots available yet.') +
+              '</div>';
+            return;
+          }
+
+          grid.innerHTML = '';
+          bots.forEach(function(bot) {
+            var card = document.createElement('div');
+            card.className = 'bot-card';
+
+            var previewHtml;
+            if (bot.preview_path) {
+              previewHtml = '<div class="bot-card-preview"><img src="/' + escapeHtml(bot.preview_path) + '" onerror="this.parentNode.innerHTML=\'<div class=fallback>&#129302;</div>\'"></div>';
+            } else {
+              previewHtml = '<div class="bot-card-preview"><div class="fallback">&#129302;</div></div>';
+            }
+
+            var views = bot.view_count || 0;
+            var likes = bot.like_count || 0;
+            var dateStr = formatDate(bot.created_at);
+
+            card.innerHTML = previewHtml +
+              '<div class="bot-card-body">' +
+                '<div class="bot-card-title">' + escapeHtml(bot.title || 'Untitled Bot') + '</div>' +
+                '<div class="bot-card-owner">' + escapeHtml(bot.owner_name || 'Anonymous') + '</div>' +
+                '<div class="bot-card-stats">' +
+                  '<span title="Views">&#128065; ' + views + '</span>' +
+                  '<span title="Likes">&#10084; ' + likes + '</span>' +
+                  '<span>' + escapeHtml(dateStr) + '</span>' +
+                '</div>' +
+              '</div>';
+
+            card.addEventListener('click', function() {
+              selectBrowseBot(bot.share_token, card, grid);
+            });
+
+            grid.appendChild(card);
+          });
+        })
+        .catch(function(err) {
+          grid.innerHTML = '<div class="browse-bots-error">Failed to load bots.</div>';
+          console.error('Browse bots error:', err);
+        });
+    }
+
+    function selectBrowseBot(shareToken, card, grid) {
+      // Disable all cards while loading
+      var cards = grid.querySelectorAll('.bot-card');
+      for (var i = 0; i < cards.length; i++) {
+        cards[i].classList.add('loading');
+      }
+
+      var apiBase = window.location.origin;
+      fetch(apiBase + '/api/v1/gallery/' + encodeURIComponent(shareToken))
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+          var project = result.data || result;
+          var projectData = project.project_data || project.data;
+
+          if (typeof projectData === 'string') {
+            projectData = JSON.parse(projectData);
+          }
+
+          if (!projectData) {
+            alert('Could not load bot data.');
+            // Re-enable cards
+            for (var i = 0; i < cards.length; i++) {
+              cards[i].classList.remove('loading');
+            }
+            return;
+          }
+
+          var title = project.title || 'Shared Bot';
+
+          // Call into the correct player iframe
+          if (playerFrames[_browseBotPlayer] && playerFrames[_browseBotPlayer].loadBotData) {
+            playerFrames[_browseBotPlayer].loadBotData(projectData, title);
+          }
+
+          closeBrowseBots();
+        })
+        .catch(function(err) {
+          alert('Failed to load bot data.');
+          console.error('Load shared bot error:', err);
+          for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.remove('loading');
+          }
+        });
     }
   </script>
   <script src="js/babylon.js"></script>
