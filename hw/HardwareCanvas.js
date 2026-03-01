@@ -347,8 +347,12 @@ class HardwareCanvas {
 
         // Reset zoom with '0' key
         if (e.key === '0') {
-            this.scale = 1;
-            this.panOffset = { x: 0, y: 0 };
+            if (this.components.length > 0) {
+                this.centerOnComponents();
+            } else {
+                this.scale = 1;
+                this.panOffset = { x: 0, y: 0 };
+            }
             e.preventDefault();
             return;
         }
@@ -935,6 +939,48 @@ class HardwareCanvas {
 
         // Force validator recheck
         this.validator.invalidate();
+
+        // Center the view on loaded components
+        this.centerOnComponents();
+    }
+
+    /**
+     * Pan and zoom so all components are centered and visible in the canvas.
+     */
+    centerOnComponents() {
+        if (this.components.length === 0) return;
+
+        // Calculate bounding box of all components in world space
+        var minX = Infinity, minY = Infinity;
+        var maxX = -Infinity, maxY = -Infinity;
+
+        for (var i = 0; i < this.components.length; i++) {
+            var c = this.components[i];
+            var hw = (c.width || 60) / 2 + 20;
+            var hh = (c.height || 60) / 2 + 20;
+            if (c.x - hw < minX) minX = c.x - hw;
+            if (c.y - hh < minY) minY = c.y - hh;
+            if (c.x + hw > maxX) maxX = c.x + hw;
+            if (c.y + hh > maxY) maxY = c.y + hh;
+        }
+
+        var contentW = maxX - minX;
+        var contentH = maxY - minY;
+        var centerX = (minX + maxX) / 2;
+        var centerY = (minY + maxY) / 2;
+
+        // Fit to canvas with padding
+        var canvasW = this.canvas.width;
+        var canvasH = this.canvas.height;
+        var padding = 60;
+        var scaleX = (canvasW - padding * 2) / contentW;
+        var scaleY = (canvasH - padding * 2) / contentH;
+        var fitScale = Math.min(scaleX, scaleY, 1.5); // don't zoom in too much
+        fitScale = Math.max(this.minScale, Math.min(this.maxScale, fitScale));
+
+        this.scale = fitScale;
+        this.panOffset.x = (canvasW / 2) - (centerX * fitScale);
+        this.panOffset.y = (canvasH / 2) - (centerY * fitScale);
     }
 
     /**
