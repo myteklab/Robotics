@@ -14,8 +14,7 @@ var blocklyPanel = new function() {
 
     self.loadPagesOptions();
 
-    //setInterval(blockly.saveLocalStorage, 15 * 1000);
-    setInterval(blockly.saveLocalStorage, 1000);
+    setInterval(blockly.saveLocalStorage, 5000);
 
   };
 

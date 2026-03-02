@@ -86,6 +86,12 @@ var blockly = new function() {
         });
       });
 
+      // Override logic_compare extension: the built-in mixin enforces type
+      // compatibility which causes drag failures and workspace desync in the
+      // dual-workspace architecture. All comparisons are valid in Python.
+      Blockly.Extensions.unregister('logic_compare');
+      Blockly.Extensions.register('logic_compare', function() {});
+
       self.loadCustomBlocks()
         .then(self.loadToolBox)
         .then(self.generator.load());
@@ -110,8 +116,6 @@ var blockly = new function() {
 
         self.loadDefaultWorkspace();
 
-        self.workspace.addChangeListener(Blockly.Events.disableOrphans);
-        self.displayedWorkspace.addChangeListener(Blockly.Events.disableOrphans);
         setTimeout(self.loadLocalStorage, 200);
         setTimeout(function(){
           self.workspace.addChangeListener(self.checkModified);
@@ -306,6 +310,9 @@ var blockly = new function() {
 
   // Save to local storage / platform
   this.saveLocalStorage = function() {
+    if (self.displayedWorkspace && self.displayedWorkspace.isDragging()) {
+      return;
+    }
     if (self.workspace && self.unsaved) {
       self.unsaved = false;
       blocklyPanel.hideSave();
