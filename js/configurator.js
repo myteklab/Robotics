@@ -2505,7 +2505,8 @@ var configurator = new function() {
         if (notClose(selected[0].component.position[2], pos.z)) {
           selected[0].component.position[2] = self.roundToSnap(pos.z, self.snapStep[1]);
         }
-        self.resetScene(false);
+        self.updateSelectedTransform();
+        self.showComponentOptions(selected[0].component);
       };
 
       let pointerDragBehavior = new BABYLON.PointerDragBehavior({dragPlaneNormal: self.pointerDragPlaneNormal});
@@ -2634,6 +2635,11 @@ var configurator = new function() {
         let options = component.options;
         if (optionConfiguration.option == 'position' || optionConfiguration.option == 'rotation') {
           options = component;
+          // Use lightweight transform update instead of full scene rebuild
+          optionConfiguration = Object.assign({}, optionConfiguration, {
+            reset: false,
+            liveUpdate: function() { self.updateSelectedTransform(); }
+          });
         }
         if (typeof genConfig.gen[optionConfiguration.type] != 'undefined') {
           self.$settingsArea.append(genConfig.gen[optionConfiguration.type](optionConfiguration, options));
@@ -2861,6 +2867,35 @@ var configurator = new function() {
     self.highlightSelected();
     self.applyDragToSelected();
   }
+
+  // Lightweight transform update: reposition/reorient the selected component
+  // mesh without rebuilding the entire scene.
+  this.updateSelectedTransform = function() {
+    var $selected = self.$componentList.find('.component-item.selected');
+    if ($selected.length < 1) return;
+    var index = $selected[0].componentIndex;
+    if (typeof index == 'undefined') return;
+
+    var comp = robot.getComponentByIndex(index);
+    if (!comp || !comp.body) return;
+    var cfg = $selected[0].component;
+
+    // Update position
+    if (cfg.position) {
+      comp.body.position.x = cfg.position[0];
+      comp.body.position.y = cfg.position[1];
+      comp.body.position.z = cfg.position[2];
+    }
+
+    // Update rotation (rebuild from scratch to avoid drift)
+    if (cfg.rotation) {
+      comp.body.rotationQuaternion = null;
+      comp.body.rotation.set(0, 0, 0);
+      comp.body.rotate(BABYLON.Axis.X, cfg.rotation[0], BABYLON.Space.LOCAL);
+      comp.body.rotate(BABYLON.Axis.Y, cfg.rotation[1], BABYLON.Space.LOCAL);
+      comp.body.rotate(BABYLON.Axis.Z, cfg.rotation[2], BABYLON.Space.LOCAL);
+    }
+  };
 
   // Base path for component SVG icons
   this.iconBasePath = 'images/components/';

@@ -439,7 +439,9 @@ function GenConfig(caller, $settingsArea) {
     $slider.on('change', function(){
       caller.saveHistory();
       callback(parseFloat($slider.val()));
-      if (opt.reset) {
+      if (opt.liveUpdate) {
+        opt.liveUpdate();
+      } else if (opt.reset) {
         caller.resetScene(false);
       }
     })
@@ -447,7 +449,9 @@ function GenConfig(caller, $settingsArea) {
       caller.saveHistory();
       callback(parseFloat($input.val()));
       $slider.val($input.val());
-      if (opt.reset) {
+      if (opt.liveUpdate) {
+        opt.liveUpdate();
+      } else if (opt.reset) {
         caller.resetScene(false);
       }
     });
