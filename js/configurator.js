@@ -2895,6 +2895,17 @@ var configurator = new function() {
       comp.body.rotate(BABYLON.Axis.Y, cfg.rotation[1], BABYLON.Space.LOCAL);
       comp.body.rotate(BABYLON.Axis.Z, cfg.rotation[2], BABYLON.Space.LOCAL);
     }
+
+    // Sync robot options to parent (same mechanism as resetScene wrapper)
+    if (self.isEmbedded) {
+      if (self._transformSyncTimer) clearTimeout(self._transformSyncTimer);
+      self._transformSyncTimer = setTimeout(function() {
+        window.parent.postMessage({
+          type: 'robotics:applyRobot',
+          robotOptions: JSON.parse(JSON.stringify(robot.options))
+        }, '*');
+      }, 300);
+    }
   };
 
   // Base path for component SVG icons
