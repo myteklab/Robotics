@@ -1330,7 +1330,7 @@ function UltrasonicSensor(scene, parent, pos, rot, port, options) {
       rayLength: 255,
       rayIncidentLimit: 0.698132,
       useRealisticModel: false,
-      realisticModelURL: '',
+      realisticModelURL: 'models/custom/1-7782-0.glb',
       realisticModelScale: 5,
       realisticModelRotation: [0, -180, 0]
     };
