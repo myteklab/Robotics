@@ -251,7 +251,7 @@ function Robot() {
           bodyMat.diffuseColor = self.playerIndividualColors[self.player];
         }
       }
-      bodyMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+      bodyMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
       bodyMat.freeze();
 
       var body;
