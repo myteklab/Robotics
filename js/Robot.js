@@ -145,9 +145,9 @@ function Robot() {
 
     // Six faces: origin is face center, uAxis/vAxis span from -1..1 across the face
     // +Y face (top)
-    buildFace([0, hh, 0], [hw, 0, 0], [0, 0, hd], [0, 1, 0]);
+    buildFace([0, hh, 0], [hw, 0, 0], [0, 0, -hd], [0, 1, 0]);
     // -Y face (bottom)
-    buildFace([0, -hh, 0], [hw, 0, 0], [0, 0, -hd], [0, -1, 0]);
+    buildFace([0, -hh, 0], [hw, 0, 0], [0, 0, hd], [0, -1, 0]);
     // +X face (right)
     buildFace([hw, 0, 0], [0, 0, -hd], [0, hh, 0], [1, 0, 0]);
     // -X face (left)
