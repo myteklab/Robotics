@@ -57,6 +57,12 @@ var builder = new function() {
         help: 'Repeats the image vertically (eg. when set to 2, each image will appear twice).'
       },
       {
+        option: 'skyColor',
+        type: 'color',
+        help: 'Background sky color',
+        reset: true
+      },
+      {
         option: 'groundFriction',
         type: 'slider',
         min: '0.1',

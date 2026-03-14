@@ -74,6 +74,12 @@ var world_Custom = new function() {
       help: 'Scales the image (eg. when set to 2, each pixel will equal 2mm). Default to 1.'
     },
     {
+      option: 'skyColor',
+      title: 'Sky Color',
+      type: 'text',
+      help: 'Background color in hex (e.g. #6699E6)'
+    },
+    {
       option: 'wall',
       title: 'Wall',
       type: 'checkbox',

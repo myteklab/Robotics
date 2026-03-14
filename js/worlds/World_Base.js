@@ -65,6 +65,7 @@ var World_Base = function() {
     groundRestitution: 0.0,
     wallRestitution: 0.1,
     restartAnimationOnRun: false,
+    skyColor: '#6699E6',
     objects: [],
     startPos: 'center',
     startPosXYZStr: '',
@@ -441,6 +442,12 @@ var World_Base = function() {
       groundMat.diffuseTexture.uScale = self.processedOptions.uScale;
       groundMat.diffuseTexture.vScale = self.processedOptions.vScale;
       groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+
+      // Apply sky color
+      if (self.processedOptions.skyColor) {
+        var c = BABYLON.Color3.FromHexString(self.processedOptions.skyColor);
+        scene.clearColor = new BABYLON.Color4(c.r, c.g, c.b, 1.0);
+      }
 
       if (self.processedOptions.groundType == 'box') {
         self.boxGround(scene, groundMat);
