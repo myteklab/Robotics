@@ -443,9 +443,10 @@ var World_Base = function() {
       groundMat.diffuseTexture.vScale = self.processedOptions.vScale;
       groundMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
 
-      // Apply sky color
+      // Apply sky color (strip alpha suffix and ensure # prefix)
       if (self.processedOptions.skyColor) {
-        var c = BABYLON.Color3.FromHexString(self.processedOptions.skyColor);
+        var skyHex = self.processedOptions.skyColor.replace(/^#/, '').slice(0, 6);
+        var c = BABYLON.Color3.FromHexString('#' + skyHex);
         scene.clearColor = new BABYLON.Color4(c.r, c.g, c.b, 1.0);
       }
 
