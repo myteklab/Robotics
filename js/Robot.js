@@ -30,7 +30,7 @@ function Robot() {
   ];
 
   this.defaultOptions = {
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
     caster: true,

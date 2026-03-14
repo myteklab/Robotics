@@ -392,7 +392,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -480,7 +480,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -570,7 +570,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -677,7 +677,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -786,7 +786,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -900,7 +900,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
@@ -1013,7 +1013,7 @@ var robotTemplates = [
     bodyFriction: 0,
     casterFriction: 0, // Warning: No effect due to parenting
 
-    color: '#2e3133',
+    color: '#505558',
     imageType: 'all',
     imageURL: '',
 
