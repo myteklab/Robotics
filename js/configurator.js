@@ -12,7 +12,7 @@ var configurator = new function() {
       bodyLength: 16,
       wheels: true,
       wheelDiameter: 5.6,
-      wheelWidth: 0.8,
+      wheelWidth: 1.2,
       wheelToBodyOffset: 0.2,
       bodyEdgeToWheelCenterY: 1,
       bodyEdgeToWheelCenterZ: 2,
