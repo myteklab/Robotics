@@ -26,7 +26,7 @@ var configurator = new function() {
       casterFriction: 0,
       casterOffsetZ: 0.5,
       bodyColor: '#2e3133',
-      bodyShape: 'box',
+      bodyShape: 'roundedBox',
       bodyModelURL: '',
       bodyModelScale: 1,
       bodyModelOffsetY: 0,
@@ -76,6 +76,7 @@ var configurator = new function() {
         option: 'bodyShape',
         type: 'select',
         options: [
+          ['Rounded Box', 'roundedBox'],
           ['Box', 'box'],
           ['Cylinder', 'cylinder'],
           ['Sphere', 'sphere'],
