@@ -55,142 +55,107 @@ function Robot() {
   this.init = function() {
   };
 
-  // Create a box mesh with rounded edges
+  // Create a box mesh with rounded edges using a cube-sphere projection.
+  // Each face of a cube is subdivided into a grid, then each vertex is
+  // pushed outward to form a rounded shape while preserving box proportions.
   this.createRoundedBox = function(name, width, height, depth, radius, segments, scene) {
     var positions = [];
-    var indices = [];
     var normals = [];
+    var indices = [];
+    var totalVerts = 0;
 
-    var hw = width / 2 - radius;
-    var hh = height / 2 - radius;
-    var hd = depth / 2 - radius;
+    var hw = width / 2;
+    var hh = height / 2;
+    var hd = depth / 2;
 
-    // Generate vertices for each of the 8 corners (quarter-sphere)
-    var cornerCenters = [
-      [-hw, -hh, -hd], [ hw, -hh, -hd], [ hw,  hh, -hd], [-hw,  hh, -hd],
-      [-hw, -hh,  hd], [ hw, -hh,  hd], [ hw,  hh,  hd], [-hw,  hh,  hd]
-    ];
-    var cornerSigns = [
-      [-1,-1,-1], [ 1,-1,-1], [ 1, 1,-1], [-1, 1,-1],
-      [-1,-1, 1], [ 1,-1, 1], [ 1, 1, 1], [-1, 1, 1]
-    ];
+    // For each point on the unit cube surface, compute the rounded box position.
+    // The idea: project from the cube center through each surface point,
+    // find the inner box (shrunk by radius), then offset by radius along the normal.
+    function roundedPoint(cubeX, cubeY, cubeZ) {
+      // Clamp the inner box extents
+      var ix = Math.max(-hw + radius, Math.min(hw - radius, cubeX));
+      var iy = Math.max(-hh + radius, Math.min(hh - radius, cubeY));
+      var iz = Math.max(-hd + radius, Math.min(hd - radius, cubeZ));
 
-    var vertPerCorner = (segments + 1) * (segments + 1);
+      // Direction from inner point to surface point
+      var dx = cubeX - ix;
+      var dy = cubeY - iy;
+      var dz = cubeZ - iz;
+      var len = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Build corner vertices
-    for (var c = 0; c < 8; c++) {
-      var cx = cornerCenters[c][0], cy = cornerCenters[c][1], cz = cornerCenters[c][2];
-      var sx = cornerSigns[c][0], sy = cornerSigns[c][1], sz = cornerSigns[c][2];
-      for (var j = 0; j <= segments; j++) {
-        var phi = (j / segments) * Math.PI / 2;
-        for (var i = 0; i <= segments; i++) {
-          var theta = (i / segments) * Math.PI / 2;
-          var nx = sx * Math.cos(phi) * Math.cos(theta);
-          var ny = sy * Math.sin(phi);
-          var nz = sz * Math.cos(phi) * Math.sin(theta);
-          positions.push(cx + radius * nx, cy + radius * ny, cz + radius * nz);
-          normals.push(nx, ny, nz);
-        }
+      if (len < 0.0001) {
+        // On a flat face, normal points along the dominant axis
+        return { x: cubeX, y: cubeY, z: cubeZ, nx: 0, ny: 0, nz: 0 };
       }
+
+      var nx = dx / len;
+      var ny = dy / len;
+      var nz = dz / len;
+
+      return {
+        x: ix + nx * radius,
+        y: iy + ny * radius,
+        z: iz + nz * radius,
+        nx: nx, ny: ny, nz: nz
+      };
     }
 
-    // Build corner indices
-    for (var c = 0; c < 8; c++) {
-      var base = c * vertPerCorner;
-      for (var j = 0; j < segments; j++) {
-        for (var i = 0; i < segments; i++) {
-          var a = base + j * (segments + 1) + i;
+    // Build one face of the rounded box as a subdivided grid
+    function buildFace(origin, uAxis, vAxis, faceNormal) {
+      var baseIndex = totalVerts;
+      var res = segments * 2 + 1; // subdivisions per face
+
+      for (var j = 0; j <= res; j++) {
+        for (var i = 0; i <= res; i++) {
+          var u = i / res * 2 - 1; // -1 to 1
+          var v = j / res * 2 - 1;
+
+          // Point on the cube surface
+          var cx = origin[0] + uAxis[0] * u + vAxis[0] * v;
+          var cy = origin[1] + uAxis[1] * u + vAxis[1] * v;
+          var cz = origin[2] + uAxis[2] * u + vAxis[2] * v;
+
+          var p = roundedPoint(cx, cy, cz);
+
+          // For flat regions the normal calculation gives zero, use face normal
+          var pnx = p.nx || faceNormal[0];
+          var pny = p.ny || faceNormal[1];
+          var pnz = p.nz || faceNormal[2];
+
+          positions.push(p.x, p.y, p.z);
+          normals.push(pnx, pny, pnz);
+        }
+      }
+
+      // Triangulate the grid
+      var stride = res + 1;
+      for (var j = 0; j < res; j++) {
+        for (var i = 0; i < res; i++) {
+          var a = baseIndex + j * stride + i;
           var b = a + 1;
-          var d = a + (segments + 1);
-          var e = d + 1;
-          indices.push(a, d, b, b, d, e);
+          var c = a + stride;
+          var d = c + 1;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
         }
       }
+
+      totalVerts += (res + 1) * (res + 1);
     }
 
-    // Stitch adjacent corners with quad strips
-    // Edges along X (connect corners that differ in X sign)
-    var xPairs = [[0,1],[3,2],[4,5],[7,6]];
-    // Edges along Y (connect corners that differ in Y sign)
-    var yPairs = [[0,3],[1,2],[4,7],[5,6]];
-    // Edges along Z (connect corners that differ in Z sign)
-    var zPairs = [[0,4],[1,5],[2,6],[3,7]];
-
-    function stitchEdge(cA, cB, edgeRowA, edgeRowB, flip) {
-      var baseA = cA * vertPerCorner;
-      var baseB = cB * vertPerCorner;
-      for (var i = 0; i < segments; i++) {
-        var a0 = baseA + edgeRowA(i);
-        var a1 = baseA + edgeRowA(i + 1);
-        var b0 = baseB + edgeRowB(i);
-        var b1 = baseB + edgeRowB(i + 1);
-        if (flip) {
-          indices.push(a0, a1, b0, b0, a1, b1);
-        } else {
-          indices.push(a0, b0, a1, a1, b0, b1);
-        }
-      }
-    }
-
-    // X edges: corners share max-theta edge (i=segments) on one, min-theta (i=0) on other
-    for (var p = 0; p < xPairs.length; p++) {
-      var cA = xPairs[p][0], cB = xPairs[p][1];
-      stitchEdge(cA, cB,
-        function(j) { return j * (segments + 1) + segments; },
-        function(j) { return j * (segments + 1); },
-        true
-      );
-    }
-
-    // Y edges: corners share max-phi row (j=segments) on one, min-phi (j=0) on other
-    for (var p = 0; p < yPairs.length; p++) {
-      var cA = yPairs[p][0], cB = yPairs[p][1];
-      stitchEdge(cA, cB,
-        function(i) { return segments * (segments + 1) + i; },
-        function(i) { return i; },
-        false
-      );
-    }
-
-    // Z edges: corners share max-theta (i=segments mapped via theta) on one side
-    for (var p = 0; p < zPairs.length; p++) {
-      var cA = zPairs[p][0], cB = zPairs[p][1];
-      stitchEdge(cA, cB,
-        function(j) { return j * (segments + 1); },
-        function(j) { return j * (segments + 1) + segments; },
-        false
-      );
-    }
-
-    // Fill the 6 flat faces between the four corners of each face
-    function addFace(c0, c1, c2, c3, getIdx0, getIdx1, getIdx2, getIdx3) {
-      var i0 = c0 * vertPerCorner + getIdx0;
-      var i1 = c1 * vertPerCorner + getIdx1;
-      var i2 = c2 * vertPerCorner + getIdx2;
-      var i3 = c3 * vertPerCorner + getIdx3;
-      indices.push(i0, i1, i2, i0, i2, i3);
-    }
-
-    // Top face (y+): corners 3,2,6,7 at j=segments, i=segments (max phi, max theta)
-    var topIdx = segments * (segments + 1) + segments;
-    addFace(3, 2, 6, 7, topIdx, topIdx, topIdx, topIdx);
-
-    // Bottom face (y-): corners 0,1,5,4 at j=0, i=segments
-    var botIdx = segments;
-    addFace(0, 4, 5, 1, botIdx, botIdx, botIdx, botIdx);
-
-    // Front face (z+): corners 4,5,6,7 at i=segments, j=segments
-    var frontIdx = segments * (segments + 1) + segments;
-    addFace(4, 5, 6, 7, segments * (segments + 1), segments * (segments + 1), frontIdx, frontIdx);
-
-    // Back face (z-): corners 0,1,2,3 at i=0, j varies
-    addFace(1, 0, 3, 2, 0, 0, segments * (segments + 1), segments * (segments + 1));
-
-    // Right face (x+): corners 1,5,6,2
-    addFace(1, 5, 6, 2, segments, segments, segments * (segments + 1) + segments, segments * (segments + 1) + segments);
-
-    // Left face (x-): corners 0,4,7,3
-    addFace(4, 0, 3, 7, 0, 0, segments * (segments + 1), segments * (segments + 1));
+    // Six faces: origin is face center, uAxis/vAxis span from -1..1 across the face
+    // +Y face (top)
+    buildFace([0, hh, 0], [hw, 0, 0], [0, 0, hd], [0, 1, 0]);
+    // -Y face (bottom)
+    buildFace([0, -hh, 0], [hw, 0, 0], [0, 0, -hd], [0, -1, 0]);
+    // +X face (right)
+    buildFace([hw, 0, 0], [0, 0, -hd], [0, hh, 0], [1, 0, 0]);
+    // -X face (left)
+    buildFace([-hw, 0, 0], [0, 0, hd], [0, hh, 0], [-1, 0, 0]);
+    // +Z face (front)
+    buildFace([0, 0, hd], [hw, 0, 0], [0, hh, 0], [0, 0, 1]);
+    // -Z face (back)
+    buildFace([0, 0, -hd], [-hw, 0, 0], [0, hh, 0], [0, 0, -1]);
 
     var mesh = new BABYLON.Mesh(name, scene);
     var vertexData = new BABYLON.VertexData();
