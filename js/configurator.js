@@ -24,7 +24,7 @@ var configurator = new function() {
       wheelFriction: 10,
       bodyFriction: 0,
       casterFriction: 0,
-      casterOffsetZ: 0,
+      casterOffsetZ: 0.5,
       bodyColor: '#2e3133',
       bodyShape: 'box',
       bodyModelURL: '',
