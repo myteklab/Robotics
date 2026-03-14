@@ -15,7 +15,12 @@ var babylon = new function() {
     self.scene = self.createScene(); // Call the createScene function
 
     self.world.setOptions().then(function(){
-      self.loadMeshes(self.scene);
+      // Skip initial mesh load if the platform adapter has project
+      // data pending. The adapter will call resetScene after
+      // applying the saved world/robot config, avoiding a duplicate robot.
+      if (!window._platformProjectPending) {
+        self.loadMeshes(self.scene);
+      }
     });
 
     // Register a render loop to repeatedly render the scene
