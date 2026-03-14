@@ -25,7 +25,7 @@ var configurator = new function() {
       bodyFriction: 0,
       casterFriction: 0,
       casterOffsetZ: 0,
-      bodyColor: '#F09C0D',
+      bodyColor: '#A0A4A8',
       bodyShape: 'box',
       bodyModelURL: '',
       bodyModelScale: 1,
@@ -88,13 +88,6 @@ var configurator = new function() {
         sectionIcon: '🔷'
       },
       {
-        option: 'bodyColor',
-        type: 'color',
-        help: 'Body color in hex',
-        reset: true,
-        section: 'Body Shape'
-      },
-      {
         option: 'bodyModelURL',
         type: 'strText',
         reset: true,
@@ -137,6 +130,14 @@ var configurator = new function() {
       },
       // ===== BODY APPEARANCE =====
       {
+        option: 'bodyColor',
+        type: 'color',
+        help: 'Body color in hex',
+        reset: true,
+        section: 'Body Appearance',
+        sectionIcon: '🎨'
+      },
+      {
         option: 'imageType',
         type: 'select',
         options: [
@@ -147,8 +148,7 @@ var configurator = new function() {
           ['Map across all faces', 'all']
         ],
         reset: true,
-        section: 'Body Appearance',
-        sectionIcon: '🎨'
+        section: 'Body Appearance'
       },
       {
         option: 'imageURL',
