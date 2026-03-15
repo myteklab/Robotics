@@ -47,6 +47,7 @@ var ev3dev2_generator = new function() {
     Blockly.Python['penUp'] = self.penUp;
     Blockly.Python['penSetColor'] = self.penSetColor;
     Blockly.Python['penSetWidth'] = self.penSetWidth;
+    Blockly.Python['penSetEffect'] = self.penSetEffect;
     Blockly.Python['cameraActivate'] = self.cameraActivate;
     Blockly.Python['cameraDeactivate'] = self.cameraDeactivate;
     Blockly.Python['ledOn'] = self.ledOn;
