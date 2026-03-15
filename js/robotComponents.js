@@ -4204,8 +4204,8 @@ function Pen(scene, parent, pos, rot, port, options) {
         var width = self.traceWidth;
         if (self.traceEffect === 'calligraphy') {
           var speed = Math.sqrt(distSq);
-          // Slower = wider, faster = thinner (clamped between 0.3x and 2x)
-          var speedFactor = Math.max(0.3, Math.min(2.0, 1.0 / speed));
+          // Slower = much wider, faster = very thin (clamped between 0.15x and 3.5x)
+          var speedFactor = Math.max(0.15, Math.min(3.5, 0.5 / (speed * speed)));
           width = self.traceWidth * speedFactor;
         }
 

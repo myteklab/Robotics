@@ -485,16 +485,25 @@ var babylon = new function() {
     // Create glow layer once per scene
     if (!self.glowLayer) {
       self.glowLayer = new BABYLON.GlowLayer('penGlow', scene, {
-        mainTextureFixedSize: 512,
-        blurKernelSize: 64
+        mainTextureFixedSize: 1024,
+        blurKernelSize: 128
       });
-      self.glowLayer.intensity = 1.5;
+      self.glowLayer.intensity = 3.0;
+      // Only glow meshes that use a glow material
+      self.glowLayer.customEmissiveColorSelector = function(mesh, subMesh, material, result) {
+        if (material && material.id && material.id.indexOf('glow_') === 0) {
+          result.set(material.emissiveColor.r, material.emissiveColor.g, material.emissiveColor.b, 1.0);
+        } else {
+          result.set(0, 0, 0, 0);
+        }
+      };
     }
 
     var color = self.hexToColor3(rgba);
     var mat = new BABYLON.StandardMaterial(glowId, scene);
     mat.diffuseColor = color;
     mat.emissiveColor = color;
+    mat.specularColor = new BABYLON.Color3(0, 0, 0);
     mat.disableLighting = true;
 
     return mat;
