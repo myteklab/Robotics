@@ -500,9 +500,28 @@ var babylon = new function() {
     }
 
     var color = self.hexToColor3(rgba);
+
+    // Boost dark colors so they still produce visible glow
+    var brightness = Math.max(color.r, color.g, color.b);
+    var emissive;
+    if (brightness < 0.15) {
+      // Near-black: use a cool white glow
+      emissive = new BABYLON.Color3(0.6, 0.7, 1.0);
+    } else if (brightness < 0.5) {
+      // Dark colors: brighten proportionally
+      var boost = 0.5 / brightness;
+      emissive = new BABYLON.Color3(
+        Math.min(1.0, color.r * boost),
+        Math.min(1.0, color.g * boost),
+        Math.min(1.0, color.b * boost)
+      );
+    } else {
+      emissive = color.clone();
+    }
+
     var mat = new BABYLON.StandardMaterial(glowId, scene);
     mat.diffuseColor = color;
-    mat.emissiveColor = color;
+    mat.emissiveColor = emissive;
     mat.specularColor = new BABYLON.Color3(0, 0, 0);
     mat.disableLighting = true;
 
