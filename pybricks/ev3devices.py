@@ -244,6 +244,9 @@ class Pen:
         raise ValueError('pen width must be >= 0')
     self.pen.setWidth( width )
 
+  def setEffect(self, effect='solid'):
+    self.pen.setEffect(effect)
+
 class LED:
   _DRIVER_NAME = 'virtual-led'
 
