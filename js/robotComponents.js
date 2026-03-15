@@ -3977,6 +3977,7 @@ function Pen(scene, parent, pos, rot, port, options) {
   this.currentRibbonPath = [[], []];
   this.dashCounter = 0;
   this.dashOn = true;
+  this.calligraphyWidth = 0;
 
   this.init = function() {
     self.setOptions(options);
@@ -4109,6 +4110,7 @@ function Pen(scene, parent, pos, rot, port, options) {
     self.prevPos = null;
     self.dashCounter = 0;
     self.dashOn = true;
+    self.calligraphyWidth = 0;
     self.isDown = true;
   };
 
@@ -4200,13 +4202,18 @@ function Pen(scene, parent, pos, rot, port, options) {
           }
         }
 
-        // Calligraphy: width varies with speed
+        // Calligraphy: width varies with speed, smoothed over time
         var width = self.traceWidth;
         if (self.traceEffect === 'calligraphy') {
           var speed = Math.sqrt(distSq);
-          // Slower = much wider, faster = very thin (clamped between 0.15x and 3.5x)
-          var speedFactor = Math.max(0.15, Math.min(3.5, 0.5 / (speed * speed)));
-          width = self.traceWidth * speedFactor;
+          // Target: slower = wider, faster = thinner
+          var targetWidth = self.traceWidth * Math.max(0.15, Math.min(3.0, 0.6 / speed));
+          // Smooth toward target (0.3 = how fast width adapts)
+          if (self.calligraphyWidth === 0) {
+            self.calligraphyWidth = targetWidth;
+          }
+          self.calligraphyWidth += (targetWidth - self.calligraphyWidth) * 0.3;
+          width = self.calligraphyWidth;
         }
 
         dirV = dirV.normalize();
