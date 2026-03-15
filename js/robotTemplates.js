@@ -376,8 +376,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -464,8 +466,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -554,8 +558,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -661,8 +667,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -770,8 +778,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -884,8 +894,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
@@ -997,8 +1009,10 @@ var robotTemplates = [
     bodyLength: 16,
 
     wheels: true,
-    wheelDiameter: 5.6,
-    wheelWidth: 0.8,
+    bodyShape: 'roundedBox',
+    wheelDiameter: 6.5,
+    wheelWidth: 1.2,
+    casterOffsetZ: 0.5,
     wheelToBodyOffset: 0.2,
 
     bodyEdgeToWheelCenterY: 1,
