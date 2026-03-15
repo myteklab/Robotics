@@ -714,6 +714,15 @@ var ev3dev2_generator = new function() {
     return code;
   };
 
+  this.penSetEffect = function(block) {
+    var dropdown_port = block.getFieldValue('port');
+    dropdown_port = self.getPort(dropdown_port, 'Pen');
+
+    var dropdown_effect = block.getFieldValue('effect');
+    var code = 'pen_in' + dropdown_port + '.setEffect(\'' + dropdown_effect + '\')\n';
+    return code;
+  };
+
   this.cameraActivate = function(block) {
     var dropdown_port = block.getFieldValue('port');
     dropdown_port = self.getPort(dropdown_port, 'CameraSensor');

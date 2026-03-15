@@ -962,6 +962,9 @@ let MSGS = {
     ru: 'задать толщину пера',
     hu: 'Toll vastagsága',
   },
+  '#blk-pen_effect#': {
+    en: 'set pen effect to',
+  },
   '#blk-sleep_tooltip#': {
     en: 'Pause the program for a while',
     nl: 'Pauzeer het programma voor een tijdje',

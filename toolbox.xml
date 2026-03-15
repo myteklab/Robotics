@@ -241,6 +241,8 @@
         </shadow>
       </value>
     </block>
+    <block type="penSetEffect">
+    </block>
   </category>
   <category name="LED" colour="#a5005b">
     <block type="ledOn">

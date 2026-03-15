@@ -3968,12 +3968,15 @@ function Pen(scene, parent, pos, rot, port, options) {
   this.isDown = false;
   this.traceColor = '000';
   this.traceWidth = 0.5;
+  this.traceEffect = 'solid'; // solid, glow, dashed, calligraphy
   this.traceMat = null;
   this.traceMeshes = [];
   this.currentMesh = null;
   this.prevPos = null;
   this.currentPathDirty = false;
   this.currentRibbonPath = [[], []];
+  this.dashCounter = 0;
+  this.dashOn = true;
 
   this.init = function() {
     self.setOptions(options);
@@ -4104,6 +4107,8 @@ function Pen(scene, parent, pos, rot, port, options) {
     self.currentRibbonPath = [[], []];
     self.currentMesh = null;
     self.prevPos = null;
+    self.dashCounter = 0;
+    self.dashOn = true;
     self.isDown = true;
   };
 
@@ -4128,12 +4133,34 @@ function Pen(scene, parent, pos, rot, port, options) {
     g = ('0' + Math.round(g*255).toString(16)).slice(-2);
     b = ('0' + Math.round(b*255).toString(16)).slice(-2);
     self.traceColor = r + g + b;
-    self.traceMat = babylon.getMaterial(scene, self.traceColor);
+    if (self.traceEffect === 'glow') {
+      self.traceMat = babylon.getGlowMaterial(scene, self.traceColor);
+    } else {
+      self.traceMat = babylon.getMaterial(scene, self.traceColor);
+    }
   };
 
   this.setWidth = function(width) {
     self.traceWidth = width / 2;
   }
+
+  this.setEffect = function(effect) {
+    var valid = ['solid', 'glow', 'dashed', 'calligraphy'];
+    if (valid.indexOf(effect) === -1) {
+      console.log('Unknown pen effect: ' + effect + '. Using solid.');
+      effect = 'solid';
+    }
+    // Changing effect while pen is down starts a new trace segment
+    if (self.isDown && effect !== self.traceEffect) {
+      self.up();
+      self.traceEffect = effect;
+      self.traceMat = null; // Force material rebuild for new effect
+      self.down();
+    } else {
+      self.traceEffect = effect;
+      self.traceMat = null;
+    }
+  };
 
   this.updateTracePath = function() {
     if (!self.isDown) {
@@ -4148,13 +4175,43 @@ function Pen(scene, parent, pos, rot, port, options) {
     } else {
       const penPathEpsilon = 0.2;
       let dirV = pos.subtract(self.prevPos);
-      if (dirV.lengthSquared() > penPathEpsilon) {
+      let distSq = dirV.lengthSquared();
+      if (distSq > penPathEpsilon) {
         self.prevPos = pos.clone();
-        let left = new BABYLON.Vector3(0, self.traceWidth, 0);
-        let right = new BABYLON.Vector3(0, -self.traceWidth, 0);
-        // cross product is proprtional to lengths of both vectors, but we
-        // do not want the trace width to vary with the robot speed
-        dirV = dirV.normalize()
+
+        // Dashed: toggle drawing on/off every few points
+        if (self.traceEffect === 'dashed') {
+          self.dashCounter++;
+          if (self.dashCounter >= 4) {
+            self.dashCounter = 0;
+            self.dashOn = !self.dashOn;
+            if (self.dashOn) {
+              // Start a new ribbon segment for the next dash
+              if (self.currentMesh != null) {
+                self.traceMeshes.push(self.currentMesh);
+                self.currentMesh = null;
+              }
+              self.currentRibbonPath = [[], []];
+              self.currentPathDirty = false;
+            }
+          }
+          if (!self.dashOn) {
+            return;
+          }
+        }
+
+        // Calligraphy: width varies with speed
+        var width = self.traceWidth;
+        if (self.traceEffect === 'calligraphy') {
+          var speed = Math.sqrt(distSq);
+          // Slower = wider, faster = thinner (clamped between 0.3x and 2x)
+          var speedFactor = Math.max(0.3, Math.min(2.0, 1.0 / speed));
+          width = self.traceWidth * speedFactor;
+        }
+
+        dirV = dirV.normalize();
+        let left = new BABYLON.Vector3(0, width, 0);
+        let right = new BABYLON.Vector3(0, -width, 0);
         left = dirV.cross(left);
         right = dirV.cross(right);
         left.addInPlace(pos);
@@ -4175,7 +4232,11 @@ function Pen(scene, parent, pos, rot, port, options) {
       self.currentMesh.dispose();
     }
     if (self.traceMat == null) {
-      self.traceMat = babylon.getMaterial(scene, self.traceColor);
+      if (self.traceEffect === 'glow') {
+        self.traceMat = babylon.getGlowMaterial(scene, self.traceColor);
+      } else {
+        self.traceMat = babylon.getMaterial(scene, self.traceColor);
+      }
     }
     let options = {
       pathArray: self.currentRibbonPath,

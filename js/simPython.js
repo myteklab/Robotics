@@ -145,9 +145,9 @@ var $builtinmodule = function(name) {
       self.pen.setWidth(width.v);
     });
 
-    // $loc.setOptions = new Sk.builtin.func(function(self, o) {
-    //   self.robot.pen.set_options(o)
-    // });
+    $loc.setEffect = new Sk.builtin.func(function(self, effect) {
+      self.pen.setEffect(effect.v);
+    });
 
   }, 'Pen', []);
 

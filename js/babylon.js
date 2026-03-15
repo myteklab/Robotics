@@ -271,6 +271,7 @@ var babylon = new function() {
 
     self.engine.stopRenderLoop();
     self.scene.dispose();
+    self.glowLayer = null;
 
     self.scene = self.createScene();
 
@@ -466,6 +467,35 @@ var babylon = new function() {
 
     mat.alpha = color[3];
     mat.freeze();
+
+    return mat;
+  };
+
+  // Get or create a glow-emitting material for pen glow effect.
+  // Lazily creates a GlowLayer on first use.
+  this.getGlowMaterial = function(scene, rgba) {
+    rgba = rgba.replace(/^#/g, '');
+    var glowId = 'glow_' + rgba;
+
+    var existing = scene.getMaterialByID(glowId);
+    if (existing) {
+      return existing;
+    }
+
+    // Create glow layer once per scene
+    if (!self.glowLayer) {
+      self.glowLayer = new BABYLON.GlowLayer('penGlow', scene, {
+        mainTextureFixedSize: 512,
+        blurKernelSize: 64
+      });
+      self.glowLayer.intensity = 1.5;
+    }
+
+    var color = self.hexToColor3(rgba);
+    var mat = new BABYLON.StandardMaterial(glowId, scene);
+    mat.diffuseColor = color;
+    mat.emissiveColor = color;
+    mat.disableLighting = true;
 
     return mat;
   };
