@@ -2454,11 +2454,12 @@ var configurator = new function() {
         return;
       }
 
-      // Collect detached sub-meshes (pivots not parented to body)
+      // Collect detached sub-meshes (pivots/platforms not parented to body)
       var detachedMeshes = [];
       if (comp.pivot) detachedMeshes.push(comp.pivot);
       if (comp.leftPivot) detachedMeshes.push(comp.leftPivot);
       if (comp.rightPivot) detachedMeshes.push(comp.rightPivot);
+      if (comp.platform) detachedMeshes.push(comp.platform);
 
       function notClose(a, b) {
         if (Math.abs(a - b) > 0.01) {
@@ -2898,7 +2899,7 @@ var configurator = new function() {
     // If component has detached sub-meshes (claw/arm pivots), fall back
     // to a full scene rebuild since recalculating pivot transforms from
     // scratch requires the init() positioning logic.
-    if (comp.pivot || comp.leftPivot || comp.rightPivot) {
+    if (comp.pivot || comp.leftPivot || comp.rightPivot || comp.platform) {
       self.resetScene(false);
       return;
     }
