@@ -2441,7 +2441,8 @@ var configurator = new function() {
 
     let index = selected[0].componentIndex;
     if (typeof index != 'undefined') {
-      let dragBody = robot.getComponentByIndex(index).body;
+      let comp = robot.getComponentByIndex(index);
+      let dragBody = comp.body;
       let dragBodyPos;
 
       if (dragBody.getBehaviorByName('PointerDrag')) {
@@ -2452,6 +2453,12 @@ var configurator = new function() {
       if (typeof selected[0].component == 'undefined') {
         return;
       }
+
+      // Collect detached sub-meshes (pivots not parented to body)
+      var detachedMeshes = [];
+      if (comp.pivot) detachedMeshes.push(comp.pivot);
+      if (comp.leftPivot) detachedMeshes.push(comp.leftPivot);
+      if (comp.rightPivot) detachedMeshes.push(comp.rightPivot);
 
       function notClose(a, b) {
         if (Math.abs(a - b) > 0.01) {
@@ -2468,13 +2475,14 @@ var configurator = new function() {
       // Object drag
       function drag(event) {
         let delta = event.delta;
-        
+
         if (dragBody.parent) {
           let matrix = dragBody.parent.getWorldMatrix().clone().invert();
           matrix.setTranslation(BABYLON.Vector3.Zero());
-          delta = BABYLON.Vector3.TransformCoordinates(delta, matrix);  
+          delta = BABYLON.Vector3.TransformCoordinates(delta, matrix);
         }
 
+        var prevPos = dragBody.position.clone();
         dragBodyPos.addInPlace(delta);
 
         if (notClose(selected[0].component.position[0], dragBodyPos.x)) {
@@ -2485,6 +2493,12 @@ var configurator = new function() {
         }
         if (notClose(selected[0].component.position[2], dragBodyPos.z)) {
           dragBody.position.z = self.roundToSnap(dragBodyPos.z, self.snapStep[1]);
+        }
+
+        // Move detached sub-meshes (claw pivots, arm pivot) by the same delta
+        var bodyDelta = dragBody.position.subtract(prevPos);
+        for (var m = 0; m < detachedMeshes.length; m++) {
+          detachedMeshes[m].position.addInPlace(bodyDelta);
         }
       }
 
@@ -2880,6 +2894,14 @@ var configurator = new function() {
     var comp = robot.getComponentByIndex(index);
     if (!comp || !comp.body) return;
     var cfg = $selected[0].component;
+
+    // If component has detached sub-meshes (claw/arm pivots), fall back
+    // to a full scene rebuild since recalculating pivot transforms from
+    // scratch requires the init() positioning logic.
+    if (comp.pivot || comp.leftPivot || comp.rightPivot) {
+      self.resetScene(false);
+      return;
+    }
 
     // Update position
     if (cfg.position) {
