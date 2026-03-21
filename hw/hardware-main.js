@@ -46,6 +46,11 @@
             });
         }
 
+        // Damage callback: show toast when a component fries
+        hwCanvas.simulator.onDamage = function(component, message) {
+            hwUI.showStatus(message, 'error', 5000);
+        };
+
         // Simulate button
         var simBtn = document.getElementById('btn-simulate');
         if (simBtn) {

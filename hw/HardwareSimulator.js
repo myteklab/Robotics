@@ -7,15 +7,26 @@ class HardwareSimulator {
     constructor(canvas) {
         this.canvas = canvas;
         this.running = false;
+        this._damageTimer = null;
+        this.onDamage = null; // Callback: function(component, message)
     }
 
     start() {
         this.running = true;
+        // Reset damage state on all components
+        for (var i = 0; i < this.canvas.components.length; i++) {
+            this.canvas.components[i].damaged = false;
+        }
+        this._damageTimer = null;
         this.canvas.validator.invalidate();
     }
 
     stop() {
         this.running = false;
+        if (this._damageTimer) {
+            clearTimeout(this._damageTimer);
+            this._damageTimer = null;
+        }
         for (var i = 0; i < this.canvas.wires.length; i++) {
             this.canvas.wires[i].current = 0;
         }
@@ -30,7 +41,7 @@ class HardwareSimulator {
 
     /**
      * Called each frame from HardwareCanvas.animate().
-     * Sets wire.current values based on which connections are active.
+     * Sets wire.current values and checks for damage conditions.
      */
     simulate() {
         if (!this.running) return;
@@ -41,12 +52,49 @@ class HardwareSimulator {
         var pi = comps.pi;
         var controller = comps.controller;
 
+        // If Pi is damaged, kill all current
+        if (pi && pi.damaged) {
+            for (var i = 0; i < this.canvas.wires.length; i++) {
+                this.canvas.wires[i].current = 0;
+            }
+            return;
+        }
+
         // Determine upstream power states
         var piPowered = pi && c.piPower && c.piGnd;
 
         for (var i = 0; i < this.canvas.wires.length; i++) {
             var wire = this.canvas.wires[i];
             wire.current = this._getWireCurrent(wire, comps, c, piPowered);
+        }
+
+        // Damage check: GPIO pins driving motors directly (no controller)
+        // Real GPIO pins can only output ~16mA, motors draw 100-500mA.
+        // This fries the Pi after a short delay so students see it try to work first.
+        if (!controller && piPowered && !this._damageTimer) {
+            var directMotorActive = false;
+            if (comps.motors[0] && pi.gpioA && c.directA1 && c.directA2) directMotorActive = true;
+            if (comps.motors[1] && pi.gpioB && c.directB1 && c.directB2) directMotorActive = true;
+
+            if (directMotorActive) {
+                var self = this;
+                this._damageTimer = setTimeout(function() {
+                    if (!self.running || !pi || pi.damaged) return;
+                    pi.damaged = true;
+                    // Visual effects
+                    self.canvas.visualEffects.createSmoke(pi.x, pi.y, '#555');
+                    self.canvas.visualEffects.createSparks(pi.x, pi.y, 30);
+                    self.canvas.visualEffects.createExplosion(pi.x, pi.y);
+                    // Stop motors
+                    for (var m = 0; m < comps.motors.length; m++) {
+                        comps.motors[m].spinning = false;
+                    }
+                    // Notify UI
+                    if (self.onDamage) {
+                        self.onDamage(pi, 'GPIO pin burned out! Motors draw too much current for a GPIO pin. Use a Motor Controller to safely drive motors.');
+                    }
+                }, 1500);
+            }
         }
     }
 
