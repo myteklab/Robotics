@@ -74,6 +74,24 @@ class HardwareUI {
         var guidanceEl = document.getElementById('hw-guidance');
         if (!guidanceEl) return;
 
+        // Simulation-specific guidance
+        if (this.canvas.simulator.running) {
+            var comps = this.canvas.validator.findComponents();
+            var pi = comps.pi;
+            if (pi && pi.poweredOn) {
+                if (!pi.gpioA && !pi.gpioB) {
+                    guidanceEl.textContent = 'Simulation running. Select the Raspberry Pi and toggle GPIO A or B to drive the motors.';
+                } else {
+                    guidanceEl.textContent = 'Motors receiving signals! Toggle GPIO pins to control each motor independently.';
+                }
+            } else if (progress < total) {
+                guidanceEl.textContent = 'Simulation running, but some connections are missing. Stop and fix wiring first.';
+            } else {
+                guidanceEl.textContent = 'Simulation running. Power connections established.';
+            }
+            return;
+        }
+
         var comps = this.canvas.validator.findComponents();
         var msg = '';
 
@@ -90,10 +108,65 @@ class HardwareUI {
         } else if (total > 0 && progress < total) {
             msg = 'Connect the wires! Click a terminal dot, then click another terminal to wire them.';
         } else if (progress === total && total > 0) {
-            msg = 'All wired up! Toggle GPIO pins to test the motors. Your robot is ready to code!';
+            msg = 'All wired up! Click Simulate to test your circuit.';
         }
 
         guidanceEl.textContent = msg;
+    }
+
+    /**
+     * Toggle simulation on/off
+     */
+    toggleSimulation() {
+        var simulator = this.canvas.simulator;
+        var btn = document.getElementById('btn-simulate');
+
+        if (!simulator.running) {
+            // Starting simulation: check for errors first
+            var errors = this.canvas.validator.getWiringErrors();
+            if (errors.length > 0) {
+                this.showStatus(errors[0].message, 'error', 3000);
+                // Trigger visual effects at error locations
+                for (var i = 0; i < errors.length; i++) {
+                    if (errors[i].wire) {
+                        var points = errors[i].wire.getCurvePoints();
+                        var mid = errors[i].wire.getPositionAlongPath(points, 0.5);
+                        this.canvas.visualEffects.createSparks(mid.x, mid.y, 20);
+                    }
+                }
+                return;
+            }
+
+            simulator.start();
+            if (btn) {
+                btn.innerHTML = '&#9724; Stop';
+                btn.classList.add('active');
+            }
+            this.showStatus('Simulation started. Select the Pi to toggle GPIO pins.', 'success', 2500);
+            this._setPaletteEnabled(false);
+        } else {
+            simulator.stop();
+            if (btn) {
+                btn.innerHTML = '&#9654; Simulate';
+                btn.classList.remove('active');
+            }
+            this.showStatus('Simulation stopped.', 'info', 1500);
+            this._setPaletteEnabled(true);
+        }
+
+        this.updateChecklist();
+    }
+
+    /**
+     * Enable/disable the component palette during simulation
+     */
+    _setPaletteEnabled(enabled) {
+        var items = document.querySelectorAll('.component-item');
+        for (var i = 0; i < items.length; i++) {
+            items[i].style.opacity = enabled ? '1' : '0.4';
+            items[i].style.pointerEvents = enabled ? '' : 'none';
+            items[i].draggable = enabled;
+        }
     }
 
     /**

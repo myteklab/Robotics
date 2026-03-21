@@ -46,6 +46,14 @@
             });
         }
 
+        // Simulate button
+        var simBtn = document.getElementById('btn-simulate');
+        if (simBtn) {
+            simBtn.addEventListener('click', function() {
+                hwUI.toggleSimulation();
+            });
+        }
+
         // Keyboard shortcut for undo/redo
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {

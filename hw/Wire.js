@@ -326,17 +326,23 @@ class Wire {
             ctx.stroke();
         }
 
-        // Wire color based on current
+        // Wire appearance: glow when carrying current
         let wireColor = this.color;
         let wireWidth = 3;
 
         if (Math.abs(this.current) > 0.001) {
-            const intensity = Math.min(Math.abs(this.current) / 0.1, 1);
-            const r = Math.floor(255 * intensity);
-            const g = Math.floor(149 * (1 - intensity * 0.5));
-            const b = Math.floor(100 * (1 - intensity));
-            wireColor = `rgb(${r}, ${g}, ${b})`;
-            wireWidth = 3 + intensity * 2;
+            wireWidth = 3.5;
+            // Subtle glow behind the wire
+            ctx.save();
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = wireWidth + 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            this._drawPath(ctx);
+            ctx.stroke();
+            ctx.restore();
         }
 
         // Draw wire
@@ -357,9 +363,14 @@ class Wire {
             }
         }
 
-        // Draw current flow particles
+        // Draw current flow particles (color matched to wire type)
         if (this.particles.length > 0) {
-            ctx.fillStyle = '#fbbf24';
+            var particleColor = '#fbbf24';
+            if (this.color === '#e74c3c') particleColor = '#ff6b6b';
+            else if (this.color === '#1abc9c') particleColor = '#2eefb5';
+            else if (this.color === '#3498db') particleColor = '#5dade2';
+            else if (this.color === '#e67e22') particleColor = '#f5a623';
+            ctx.fillStyle = particleColor;
             const curvePoints = this.getCurvePoints();
 
             for (const particle of this.particles) {

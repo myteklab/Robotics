@@ -48,6 +48,10 @@ class HardwareCanvas {
         // Wiring validator
         this.validator = new RobotWiringValidator(this);
 
+        // Simulator
+        this.simulator = new HardwareSimulator(this);
+        this.validator.simulator = this.simulator;
+
         // State change callback (set externally)
         this.onStateChange = null;
         this._lastStateJSON = '';
@@ -174,6 +178,24 @@ class HardwareCanvas {
 
         // Convert to world coordinates
         var pos = this.screenToWorld(screenPos.x, screenPos.y);
+
+        // During simulation: allow selection (for GPIO controls) but block wiring/dragging
+        if (this.simulator.running) {
+            // Check if clicking on a component to select it
+            var clickedComp = null;
+            for (var i = this.components.length - 1; i >= 0; i--) {
+                if (this.components[i].containsPoint(pos.x, pos.y)) {
+                    clickedComp = this.components[i];
+                    break;
+                }
+            }
+            if (clickedComp) {
+                this.selectComponent(clickedComp);
+            } else {
+                this.selectComponent(null);
+            }
+            return;
+        }
 
         // If currently drawing a wire, check for terminal or add waypoint
         if (this.drawingWire) {
@@ -467,6 +489,7 @@ class HardwareCanvas {
      * Add a component (only robotics types)
      */
     addComponent(type, x, y) {
+        if (this.simulator.running) return;
         var snapped = this.snapToGridPos(x, y);
         var component;
 
@@ -516,6 +539,7 @@ class HardwareCanvas {
      * Delete a component and all connected wires
      */
     deleteComponent(component) {
+        if (this.simulator.running) return;
         // Remove wires connected to this component
         this.wires = this.wires.filter(function(wire) { return !wire.connectsTo(component); });
 
@@ -538,6 +562,7 @@ class HardwareCanvas {
      * Delete a wire
      */
     deleteWire(wire) {
+        if (this.simulator.running) return;
         this.wires = this.wires.filter(function(w) { return w !== wire; });
         this.updatePropertiesPanel(null);
         this.markDirty();
@@ -719,8 +744,9 @@ class HardwareCanvas {
         var deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
         this.lastTime = currentTime;
 
-        // Run robotics wiring validator
+        // Run robotics wiring validator and simulator
         this.validator.validate();
+        this.simulator.simulate();
 
         // Update components (visual state, animations)
         for (var i = 0; i < this.components.length; i++) {
@@ -808,6 +834,26 @@ class HardwareCanvas {
 
         // Draw zoom indicator (in screen space)
         this.drawZoomIndicator();
+
+        // Draw simulation badge
+        if (this.simulator.running) {
+            this.ctx.save();
+            // Subtle green tint overlay
+            this.ctx.fillStyle = 'rgba(46, 204, 113, 0.04)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            // Badge
+            var bx = this.canvas.width / 2;
+            this.ctx.fillStyle = 'rgba(46, 204, 113, 0.85)';
+            this.ctx.beginPath();
+            this.ctx.roundRect(bx - 60, 8, 120, 26, 13);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = 'bold 11px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('SIMULATING', bx, 21);
+            this.ctx.restore();
+        }
     }
 
     /**
@@ -997,6 +1043,7 @@ class HardwareCanvas {
             wiringComplete: total > 0 && progress === total,
             wiringProgress: progress,
             wiringTotal: total,
+            simulating: this.simulator.running,
             circuitData: this.toJSON()
         };
     }

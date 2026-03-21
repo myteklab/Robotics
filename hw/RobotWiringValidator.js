@@ -8,6 +8,7 @@ class RobotWiringValidator {
         this.canvas = canvas;
         this.connections = new Array(10).fill(false);
         this.lastWireCount = -1;
+        this.simulator = null; // Set by HardwareCanvas after construction
     }
 
     /**
@@ -110,7 +111,7 @@ class RobotWiringValidator {
      * Motors auto-spin when all wiring is complete
      */
     _applyStates() {
-        var wiringComplete = this.getProgress() === this.getTotal() && this.getTotal() > 0;
+        var simRunning = this.simulator ? this.simulator.running : false;
         const { pi, controller, motors } = this.findComponents();
 
         if (!pi) {
@@ -126,7 +127,7 @@ class RobotWiringValidator {
         }
 
         if (!controller) {
-            pi.poweredOn = this.connections[0] && this.connections[1];
+            pi.poweredOn = simRunning && this.connections[0] && this.connections[1];
             for (const motor of motors) {
                 motor.spinning = false;
             }
@@ -136,17 +137,17 @@ class RobotWiringValidator {
         const motorA = motors[0] || null;
         const motorB = motors[1] || null;
 
-        pi.poweredOn = this.connections[0] && this.connections[1];
-        controller.powered = this.connections[2] && this.connections[3];
+        pi.poweredOn = simRunning && this.connections[0] && this.connections[1];
+        controller.powered = simRunning && this.connections[2] && this.connections[3];
         controller.signalA = this.connections[4] && pi.poweredOn && pi.gpioA;
         controller.signalB = this.connections[5] && pi.poweredOn && pi.gpioB;
 
         if (motorA) {
-            motorA.spinning = wiringComplete && this.connections[6] && this.connections[7] &&
+            motorA.spinning = this.connections[6] && this.connections[7] &&
                               controller.powered && controller.signalA;
         }
         if (motorB) {
-            motorB.spinning = wiringComplete && this.connections[8] && this.connections[9] &&
+            motorB.spinning = this.connections[8] && this.connections[9] &&
                               controller.powered && controller.signalB;
         }
     }
@@ -209,6 +210,37 @@ class RobotWiringValidator {
             wiringTotal: this.getTotal(),
             circuitData: this.canvas.toJSON()
         };
+    }
+
+    /**
+     * Get wiring errors for simulation feedback
+     */
+    getWiringErrors() {
+        var errors = [];
+        var comps = this.findComponents();
+
+        if (!comps.battery) errors.push({ type: 'missing', message: 'No battery on canvas' });
+        if (!comps.pi) errors.push({ type: 'missing', message: 'No Raspberry Pi on canvas' });
+        if (!comps.controller) errors.push({ type: 'missing', message: 'No Motor Controller on canvas' });
+        if (comps.motors.length < 1) errors.push({ type: 'missing', message: 'Add at least one DC Motor' });
+
+        // Check for polarity errors (positive terminal wired to GND or negative to 5V/VCC)
+        for (var i = 0; i < this.canvas.wires.length; i++) {
+            var wire = this.canvas.wires[i];
+            var ft = wire.fromTerminal;
+            var tt = wire.toTerminal;
+            var positives = ['positive', 'VCC', '5V_IN'];
+            var negatives = ['negative', 'GND'];
+            var fromIsPos = positives.indexOf(ft) !== -1;
+            var fromIsNeg = negatives.indexOf(ft) !== -1;
+            var toIsPos = positives.indexOf(tt) !== -1;
+            var toIsNeg = negatives.indexOf(tt) !== -1;
+            if ((fromIsPos && toIsNeg) || (fromIsNeg && toIsPos)) {
+                errors.push({ type: 'polarity', message: 'Reversed polarity: ' + ft + ' to ' + tt, wire: wire });
+            }
+        }
+
+        return errors;
     }
 
     /**
