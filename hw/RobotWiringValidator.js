@@ -151,7 +151,7 @@ class RobotWiringValidator {
             return;
         }
 
-        pi.poweredOn = simRunning && c.piPower && c.piGnd;
+        pi.poweredOn = simRunning && c.piPower && c.piGnd && !pi.damaged;
 
         if (controller) {
             controller.powered = simRunning && c.ctrlPower && c.ctrlGnd;
