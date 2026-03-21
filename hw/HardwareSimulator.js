@@ -1,7 +1,7 @@
 /**
  * HardwareSimulator - Lightweight simulation controller for the Robotics Hardware tab
  * Manages run/stop state and assigns wire currents based on validator connection results.
- * No Ohm's Law or path-finding needed: the robotics circuit has a fixed known topology.
+ * Supports both full (with controller) and direct (GPIO to motor) topologies.
  */
 class HardwareSimulator {
     constructor(canvas) {
@@ -16,11 +16,9 @@ class HardwareSimulator {
 
     stop() {
         this.running = false;
-        // Reset all wire currents
         for (var i = 0; i < this.canvas.wires.length; i++) {
             this.canvas.wires[i].current = 0;
         }
-        // Validator will set components to unpowered on next frame
         this.canvas.validator.invalidate();
     }
 
@@ -38,68 +36,87 @@ class HardwareSimulator {
         if (!this.running) return;
 
         var validator = this.canvas.validator;
-        var conns = validator.connections;
+        var c = validator.connections;
         var comps = validator.findComponents();
         var pi = comps.pi;
         var controller = comps.controller;
 
         // Determine upstream power states
-        var piPowered = pi && conns[0] && conns[1];
-        var controllerPowered = controller && conns[2] && conns[3];
-        var signalA = piPowered && pi.gpioA && conns[4];
-        var signalB = piPowered && pi.gpioB && conns[5];
-        var motorADriven = controllerPowered && signalA && conns[6] && conns[7];
-        var motorBDriven = controllerPowered && signalB && conns[8] && conns[9];
+        var piPowered = pi && c.piPower && c.piGnd;
 
         for (var i = 0; i < this.canvas.wires.length; i++) {
             var wire = this.canvas.wires[i];
-            wire.current = this._getWireCurrent(wire, comps, piPowered, controllerPowered, signalA, signalB, motorADriven, motorBDriven);
+            wire.current = this._getWireCurrent(wire, comps, c, piPowered);
         }
     }
 
-    _getWireCurrent(wire, comps, piPowered, ctrlPowered, sigA, sigB, motA, motB) {
+    _getWireCurrent(wire, comps, c, piPowered) {
         var ft = wire.fromTerminal;
         var tt = wire.toTerminal;
         var fc = wire.fromComponent;
         var tc = wire.toComponent;
 
-        // Battery positive to Pi 5V or Controller VCC
-        if (this._connects(fc, ft, tc, tt, 'positive', '5V_IN') && piPowered) return 0.05;
-        if (this._connects(fc, ft, tc, tt, 'positive', 'VCC') && ctrlPowered) return 0.05;
+        // --- Power wires (Battery to Pi) ---
+        if (this._matchTerminals(ft, tt, 'positive', '5V_IN') && piPowered) return 0.05;
+        if (this._matchTerminals(ft, tt, 'negative', 'GND') && this._involvesComp(fc, tc, comps.pi) && piPowered) return 0.05;
 
-        // Battery negative to Pi GND or Controller GND
-        if (this._connects(fc, ft, tc, tt, 'negative', 'GND') && piPowered) return 0.05;
-        if (this._connectsGnd(fc, ft, tc, tt, comps) && ctrlPowered) return 0.05;
+        if (comps.controller) {
+            // --- Full topology wires ---
+            var ctrlPowered = c.ctrlPower && c.ctrlGnd && piPowered;
+            var sigA = ctrlPowered && c.signalA && comps.pi.gpioA;
+            var sigB = ctrlPowered && c.signalB && comps.pi.gpioB;
+            var motA = sigA && c.motorA1 && c.motorA2;
+            var motB = sigB && c.motorB1 && c.motorB2;
 
-        // GPIO signal wires
-        if (this._connects(fc, ft, tc, tt, 'GPIO_A', 'IN_A') && sigA) return 0.03;
-        if (this._connects(fc, ft, tc, tt, 'GPIO_B', 'IN_B') && sigB) return 0.03;
+            // Battery to controller power
+            if (this._matchTerminals(ft, tt, 'positive', 'VCC') && ctrlPowered) return 0.05;
+            if (this._matchTerminals(ft, tt, 'negative', 'GND') && this._involvesComp(fc, tc, comps.controller) && ctrlPowered) return 0.05;
 
-        // Motor output wires
-        if (this._connectsMotor(ft, tt, 'OUT_A1', 'OUT_A2') && motA) return 0.04;
-        if (this._connectsMotor(ft, tt, 'OUT_B1', 'OUT_B2') && motB) return 0.04;
+            // GPIO signal wires
+            if (this._matchTerminals(ft, tt, 'GPIO_A', 'IN_A') && sigA) return 0.03;
+            if (this._matchTerminals(ft, tt, 'GPIO_B', 'IN_B') && sigB) return 0.03;
+
+            // Motor output wires
+            if (this._isMotorOutWire(ft, tt, 'OUT_A1', 'OUT_A2') && motA) return 0.04;
+            if (this._isMotorOutWire(ft, tt, 'OUT_B1', 'OUT_B2') && motB) return 0.04;
+        } else {
+            // --- Direct topology wires (GPIO to motor) ---
+            var gpioA = piPowered && comps.pi && comps.pi.gpioA;
+            var gpioB = piPowered && comps.pi && comps.pi.gpioB;
+            var directA = gpioA && c.directA1 && c.directA2;
+            var directB = gpioB && c.directB1 && c.directB2;
+
+            // GPIO to motor terminal
+            if (this._matchTerminals(ft, tt, 'GPIO_A', 'terminal_1') && directA) return 0.03;
+            if (this._matchTerminals(ft, tt, 'GPIO_B', 'terminal_1') && directB) return 0.03;
+
+            // GND to motor terminal_2
+            var motorTerms = ['terminal_2'];
+            var gndTerms = ['negative', 'GND'];
+            if (gndTerms.indexOf(ft) !== -1 && motorTerms.indexOf(tt) !== -1) {
+                var motor = tc;
+                if (motor === comps.motors[0] && directA) return 0.04;
+                if (motor === comps.motors[1] && directB) return 0.04;
+            }
+            if (gndTerms.indexOf(tt) !== -1 && motorTerms.indexOf(ft) !== -1) {
+                var motor = fc;
+                if (motor === comps.motors[0] && directA) return 0.04;
+                if (motor === comps.motors[1] && directB) return 0.04;
+            }
+        }
 
         return 0;
     }
 
-    /** Check if wire connects terminal A to terminal B (either direction) */
-    _connects(fc, ft, tc, tt, termA, termB) {
+    _matchTerminals(ft, tt, termA, termB) {
         return (ft === termA && tt === termB) || (ft === termB && tt === termA);
     }
 
-    /** Check if this is the controller GND wire (not the Pi GND wire) */
-    _connectsGnd(fc, ft, tc, tt, comps) {
-        if (ft === 'negative' && tt === 'GND') {
-            return tc === comps.controller;
-        }
-        if (tt === 'negative' && ft === 'GND') {
-            return fc === comps.controller;
-        }
-        return false;
+    _involvesComp(fc, tc, comp) {
+        return fc === comp || tc === comp;
     }
 
-    /** Check if wire connects to motor terminals */
-    _connectsMotor(ft, tt, outA, outB) {
+    _isMotorOutWire(ft, tt, outA, outB) {
         var motorTerms = ['terminal_1', 'terminal_2'];
         return ((ft === outA || ft === outB) && motorTerms.indexOf(tt) !== -1) ||
                ((tt === outA || tt === outB) && motorTerms.indexOf(ft) !== -1);

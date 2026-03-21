@@ -1,12 +1,14 @@
 /**
  * RobotWiringValidator - Validates robotics component wiring for the Hardware tab
- * Checks 10 required connections and updates component visual states
- * Motors auto-spin when all wiring is complete (no external simulator dependency)
+ * Supports two topologies:
+ *   1. Full: Battery -> Pi -> MotorController -> Motors
+ *   2. Direct: Battery -> Pi -> Motors (GPIO drives motors directly)
+ * Updates component visual states based on connections and simulation mode.
  */
 class RobotWiringValidator {
     constructor(canvas) {
         this.canvas = canvas;
-        this.connections = new Array(10).fill(false);
+        this.connections = {};
         this.lastWireCount = -1;
         this.simulator = null; // Set by HardwareCanvas after construction
     }
@@ -16,7 +18,6 @@ class RobotWiringValidator {
      */
     isConnected(compA, termA, compB, termB) {
         for (const wire of this.canvas.wires) {
-            // Check both directions
             if (wire.fromComponent === compA && wire.fromTerminal === termA &&
                 wire.toComponent === compB && wire.toTerminal === termB) {
                 return true;
@@ -25,6 +26,17 @@ class RobotWiringValidator {
                 wire.toComponent === compA && wire.toTerminal === termA) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a component terminal is connected to ANY terminal on another component
+     */
+    isConnectedTo(compA, termA, compB) {
+        for (const wire of this.canvas.wires) {
+            if (wire.fromComponent === compA && wire.fromTerminal === termA && wire.toComponent === compB) return true;
+            if (wire.toComponent === compA && wire.toTerminal === termA && wire.fromComponent === compB) return true;
         }
         return false;
     }
@@ -51,24 +63,30 @@ class RobotWiringValidator {
     }
 
     /**
+     * Determine topology: 'full' (with controller), 'direct' (GPIO to motors), or 'none'
+     */
+    getTopology() {
+        const { battery, pi, controller, motors } = this.findComponents();
+        if (!battery || !pi) return 'none';
+        if (controller) return 'full';
+        if (motors.length > 0) return 'direct';
+        return 'none';
+    }
+
+    /**
      * Run validation and update component states
-     * Connection checks cached (only re-run when wire/component count changes)
-     * Component states always re-applied each call
      */
     validate() {
         const currentWireCount = this.canvas.wires.length;
         const componentCount = this.canvas.components.length;
 
-        // Re-check connections only when wires or components change
         if (currentWireCount !== this.lastWireCount || componentCount !== this._lastCompCount) {
             this.lastWireCount = currentWireCount;
             this._lastCompCount = componentCount;
             this._recheckConnections();
         }
 
-        // Always apply component states (they may have been reset externally)
         this._applyStates();
-
         return this.connections;
     }
 
@@ -77,99 +95,110 @@ class RobotWiringValidator {
      */
     _recheckConnections() {
         const { battery, pi, controller, motors } = this.findComponents();
-
-        this.connections = new Array(10).fill(false);
+        this.connections = {};
 
         if (!battery || !pi) return;
 
-        // Pi power connections (always check if battery and pi exist)
-        this.connections[0] = this.isConnected(battery, 'positive', pi, '5V_IN');
-        this.connections[1] = this.isConnected(battery, 'negative', pi, 'GND');
+        // Pi power (always needed)
+        this.connections.piPower = this.isConnected(battery, 'positive', pi, '5V_IN');
+        this.connections.piGnd = this.isConnected(battery, 'negative', pi, 'GND');
 
-        if (!controller) return;
+        if (controller) {
+            // Full topology: Battery -> Controller power, Pi -> Controller signals, Controller -> Motors
+            this.connections.ctrlPower = this.isConnected(battery, 'positive', controller, 'VCC');
+            this.connections.ctrlGnd = this.isConnected(battery, 'negative', controller, 'GND');
+            this.connections.signalA = this.isConnected(pi, 'GPIO_A', controller, 'IN_A');
+            this.connections.signalB = this.isConnected(pi, 'GPIO_B', controller, 'IN_B');
 
-        const motorA = motors[0] || null;
-        const motorB = motors[1] || null;
-
-        this.connections[2] = this.isConnected(battery, 'positive', controller, 'VCC');
-        this.connections[3] = this.isConnected(battery, 'negative', controller, 'GND');
-        this.connections[4] = this.isConnected(pi, 'GPIO_A', controller, 'IN_A');
-        this.connections[5] = this.isConnected(pi, 'GPIO_B', controller, 'IN_B');
-
-        if (motorA) {
-            this.connections[6] = this.isConnected(controller, 'OUT_A1', motorA, 'terminal_1');
-            this.connections[7] = this.isConnected(controller, 'OUT_A2', motorA, 'terminal_2');
-        }
-        if (motorB) {
-            this.connections[8] = this.isConnected(controller, 'OUT_B1', motorB, 'terminal_1');
-            this.connections[9] = this.isConnected(controller, 'OUT_B2', motorB, 'terminal_2');
+            var motorA = motors[0] || null;
+            var motorB = motors[1] || null;
+            if (motorA) {
+                this.connections.motorA1 = this.isConnected(controller, 'OUT_A1', motorA, 'terminal_1');
+                this.connections.motorA2 = this.isConnected(controller, 'OUT_A2', motorA, 'terminal_2');
+            }
+            if (motorB) {
+                this.connections.motorB1 = this.isConnected(controller, 'OUT_B1', motorB, 'terminal_1');
+                this.connections.motorB2 = this.isConnected(controller, 'OUT_B2', motorB, 'terminal_2');
+            }
+        } else if (motors.length > 0) {
+            // Direct topology: GPIO -> Motor terminals
+            var motorA = motors[0] || null;
+            var motorB = motors[1] || null;
+            if (motorA) {
+                this.connections.directA1 = this.isConnected(pi, 'GPIO_A', motorA, 'terminal_1');
+                this.connections.directA2 = this.isConnected(battery, 'negative', motorA, 'terminal_2') ||
+                                            this.isConnected(pi, 'GND', motorA, 'terminal_2');
+            }
+            if (motorB) {
+                this.connections.directB1 = this.isConnected(pi, 'GPIO_B', motorB, 'terminal_1');
+                this.connections.directB2 = this.isConnected(battery, 'negative', motorB, 'terminal_2') ||
+                                            this.isConnected(pi, 'GND', motorB, 'terminal_2');
+            }
         }
     }
 
     /**
      * Apply visual states to components based on current connections
-     * Motors auto-spin when all wiring is complete
      */
     _applyStates() {
         var simRunning = this.simulator ? this.simulator.running : false;
         const { pi, controller, motors } = this.findComponents();
+        var c = this.connections;
 
         if (!pi) {
-            if (controller) {
-                controller.powered = false;
-                controller.signalA = false;
-                controller.signalB = false;
-            }
-            for (const motor of motors) {
-                motor.spinning = false;
-            }
+            if (controller) { controller.powered = false; controller.signalA = false; controller.signalB = false; }
+            for (const motor of motors) motor.spinning = false;
             return;
         }
 
-        if (!controller) {
-            pi.poweredOn = simRunning && this.connections[0] && this.connections[1];
-            for (const motor of motors) {
-                motor.spinning = false;
+        pi.poweredOn = simRunning && c.piPower && c.piGnd;
+
+        if (controller) {
+            controller.powered = simRunning && c.ctrlPower && c.ctrlGnd;
+            controller.signalA = c.signalA && pi.poweredOn && pi.gpioA;
+            controller.signalB = c.signalB && pi.poweredOn && pi.gpioB;
+
+            var motorA = motors[0] || null;
+            var motorB = motors[1] || null;
+            if (motorA) {
+                motorA.spinning = c.motorA1 && c.motorA2 && controller.powered && controller.signalA;
             }
-            return;
-        }
-
-        const motorA = motors[0] || null;
-        const motorB = motors[1] || null;
-
-        pi.poweredOn = simRunning && this.connections[0] && this.connections[1];
-        controller.powered = simRunning && this.connections[2] && this.connections[3];
-        controller.signalA = this.connections[4] && pi.poweredOn && pi.gpioA;
-        controller.signalB = this.connections[5] && pi.poweredOn && pi.gpioB;
-
-        if (motorA) {
-            motorA.spinning = this.connections[6] && this.connections[7] &&
-                              controller.powered && controller.signalA;
-        }
-        if (motorB) {
-            motorB.spinning = this.connections[8] && this.connections[9] &&
-                              controller.powered && controller.signalB;
+            if (motorB) {
+                motorB.spinning = c.motorB1 && c.motorB2 && controller.powered && controller.signalB;
+            }
+        } else {
+            // Direct GPIO drive
+            var motorA = motors[0] || null;
+            var motorB = motors[1] || null;
+            if (motorA) {
+                motorA.spinning = pi.poweredOn && pi.gpioA && c.directA1 && c.directA2;
+            }
+            if (motorB) {
+                motorB.spinning = pi.poweredOn && pi.gpioB && c.directB1 && c.directB2;
+            }
         }
     }
 
     /**
-     * Get progress count (how many of 10 connections are made)
+     * Get progress count
      */
     getProgress() {
-        return this.connections.filter(c => c).length;
+        var count = 0;
+        for (var key in this.connections) {
+            if (this.connections[key]) count++;
+        }
+        return count;
     }
 
     /**
      * Get total possible connections based on available components
      */
     getTotal() {
-        const { battery, pi, controller, motors } = this.findComponents();
-        if (!battery || !pi || !controller) return 0;
-
-        let total = 6; // First 6 connections always needed
-        if (motors.length >= 1) total += 2; // Motor A connections
-        if (motors.length >= 2) total += 2; // Motor B connections
-        return total;
+        var count = 0;
+        for (var key in this.connections) {
+            count++;
+        }
+        return count;
     }
 
     /**
@@ -177,43 +206,57 @@ class RobotWiringValidator {
      */
     getChecklist() {
         const { battery, pi, controller, motors } = this.findComponents();
-        const items = [
-            { label: 'Battery (+) \u2192 Pi (5V)', connected: this.connections[0] },
-            { label: 'Battery (-) \u2192 Pi (GND)', connected: this.connections[1] },
-            { label: 'Battery (+) \u2192 Controller (VCC)', connected: this.connections[2] },
-            { label: 'Battery (-) \u2192 Controller (GND)', connected: this.connections[3] },
-            { label: 'Pi (GPIO A) \u2192 Controller (IN_A)', connected: this.connections[4] },
-            { label: 'Pi (GPIO B) \u2192 Controller (IN_B)', connected: this.connections[5] }
-        ];
+        var c = this.connections;
+        var items = [];
 
-        if (motors.length >= 1) {
-            items.push({ label: 'Controller (A1) \u2192 Motor A (1)', connected: this.connections[6] });
-            items.push({ label: 'Controller (A2) \u2192 Motor A (2)', connected: this.connections[7] });
-        }
-        if (motors.length >= 2) {
-            items.push({ label: 'Controller (B1) \u2192 Motor B (1)', connected: this.connections[8] });
-            items.push({ label: 'Controller (B2) \u2192 Motor B (2)', connected: this.connections[9] });
+        if (!battery || !pi) return items;
+
+        items.push({ label: 'Battery (+) \u2192 Pi (5V)', connected: !!c.piPower });
+        items.push({ label: 'Battery (-) \u2192 Pi (GND)', connected: !!c.piGnd });
+
+        if (controller) {
+            items.push({ label: 'Battery (+) \u2192 Controller (VCC)', connected: !!c.ctrlPower });
+            items.push({ label: 'Battery (-) \u2192 Controller (GND)', connected: !!c.ctrlGnd });
+            items.push({ label: 'Pi (GPIO A) \u2192 Controller (IN_A)', connected: !!c.signalA });
+            items.push({ label: 'Pi (GPIO B) \u2192 Controller (IN_B)', connected: !!c.signalB });
+            if (motors.length >= 1) {
+                items.push({ label: 'Controller (A1) \u2192 Motor A (1)', connected: !!c.motorA1 });
+                items.push({ label: 'Controller (A2) \u2192 Motor A (2)', connected: !!c.motorA2 });
+            }
+            if (motors.length >= 2) {
+                items.push({ label: 'Controller (B1) \u2192 Motor B (1)', connected: !!c.motorB1 });
+                items.push({ label: 'Controller (B2) \u2192 Motor B (2)', connected: !!c.motorB2 });
+            }
+        } else {
+            if (motors.length >= 1) {
+                items.push({ label: 'Pi (GPIO A) \u2192 Motor A (1)', connected: !!c.directA1 });
+                items.push({ label: 'GND \u2192 Motor A (2)', connected: !!c.directA2 });
+            }
+            if (motors.length >= 2) {
+                items.push({ label: 'Pi (GPIO B) \u2192 Motor B (1)', connected: !!c.directB1 });
+                items.push({ label: 'GND \u2192 Motor B (2)', connected: !!c.directB2 });
+            }
         }
 
         return items;
     }
 
     /**
-     * Get current hardware tab state for save/load and cross-tab communication
-     * @returns {Object} State object with wiring status and serialized circuit data
+     * Get current hardware tab state
      */
     getState() {
+        var total = this.getTotal();
         return {
             hasComponents: this.hasRoboticsComponents(),
-            wiringComplete: this.getProgress() === this.getTotal() && this.getTotal() > 0,
+            wiringComplete: total > 0 && this.getProgress() === total,
             wiringProgress: this.getProgress(),
-            wiringTotal: this.getTotal(),
+            wiringTotal: total,
             circuitData: this.canvas.toJSON()
         };
     }
 
     /**
-     * Get wiring errors for simulation feedback
+     * Get wiring errors for simulation feedback (only requires battery + pi)
      */
     getWiringErrors() {
         var errors = [];
@@ -221,10 +264,8 @@ class RobotWiringValidator {
 
         if (!comps.battery) errors.push({ type: 'missing', message: 'No battery on canvas' });
         if (!comps.pi) errors.push({ type: 'missing', message: 'No Raspberry Pi on canvas' });
-        if (!comps.controller) errors.push({ type: 'missing', message: 'No Motor Controller on canvas' });
-        if (comps.motors.length < 1) errors.push({ type: 'missing', message: 'Add at least one DC Motor' });
 
-        // Check for polarity errors (positive terminal wired to GND or negative to 5V/VCC)
+        // Check for polarity errors
         for (var i = 0; i < this.canvas.wires.length; i++) {
             var wire = this.canvas.wires[i];
             var ft = wire.fromTerminal;
