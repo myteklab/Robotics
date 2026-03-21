@@ -1110,11 +1110,14 @@ var builder = new function() {
       var _receivingFromParent = false;
       var _syncTimer = null;
 
-      // Wrap resetScene to auto-sync world changes to parent (debounced)
+      // Wrap resetScene to auto-sync world changes to parent (debounced).
+      // _suppressSync is true while receiving config from parent, and stays
+      // true across the debounce timeout to prevent echoing it back.
+      var _suppressSync = false;
       var _origResetScene = self.resetScene;
       self.resetScene = function() {
         var result = _origResetScene.apply(self, arguments);
-        if (!_receivingFromParent) {
+        if (!_suppressSync) {
           if (_syncTimer) clearTimeout(_syncTimer);
           _syncTimer = setTimeout(function() {
             window.parent.postMessage({
@@ -1135,10 +1138,12 @@ var builder = new function() {
         if (!data) return;
 
         if (data.type === 'robotics:loadRobot') {
-          // Apply custom robot config
+          // Apply custom robot config (suppress sync since parent sent this)
           if (data.robotOptions) {
+            _suppressSync = true;
             robot.options = JSON.parse(JSON.stringify(data.robotOptions));
             self.resetScene();
+            setTimeout(function() { _suppressSync = false; }, 500);
           }
           return;
         }
@@ -1151,14 +1156,14 @@ var builder = new function() {
             config = JSON.parse(config);
           }
           if (config && config.options) {
-            _receivingFromParent = true;
+            _suppressSync = true;
             self.worldOptions = JSON.parse(JSON.stringify(config.options));
             self.resetScene();
+            // Keep suppressed until after the debounce timer (300ms) would fire
+            setTimeout(function() { _suppressSync = false; }, 500);
           }
         } catch (e) {
           console.error('Builder: failed to load world from parent', e);
-        } finally {
-          _receivingFromParent = false;
         }
       });
 
