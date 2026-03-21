@@ -7,6 +7,7 @@ var World_Base = function() {
     '<p>This world is used as a base for other worlds.</p>';
 
   this.options = {};
+  this._setOptionsGeneration = 0;
   this.animationList = [];
   this.renderTime = 0;
   this.animate = true;
@@ -188,6 +189,7 @@ var World_Base = function() {
     }
 
     self.setSeed(self.options.seed);
+    var generation = ++self._setOptionsGeneration;
     self.processedOptions = processOptionsObject(self.options);
 
     if (
@@ -301,17 +303,10 @@ var World_Base = function() {
         );
       };
       img.onload = function() {
+        // Ignore stale image loads from previous setOptions calls
+        if (generation !== self._setOptionsGeneration) return;
         self.processedOptions.groundLength = this.width / 10.0 * self.processedOptions.imageScale * self.processedOptions.uScale;
         self.processedOptions.groundWidth = this.height / 10.0 * self.processedOptions.imageScale * self.processedOptions.vScale;
-        console.log('[GROUND DEBUG] setOptions img.onload computed:', {
-          imgPixels: this.width + 'x' + this.height,
-          imageScale: self.processedOptions.imageScale,
-          typeofImageScale: typeof self.processedOptions.imageScale,
-          uScale: self.processedOptions.uScale,
-          vScale: self.processedOptions.vScale,
-          groundLength: self.processedOptions.groundLength,
-          groundWidth: self.processedOptions.groundWidth
-        });
 
         let xPos = self.processedOptions.groundLength / 2 - 12;
         let yPos = self.processedOptions.groundWidth / 2 - 12;
@@ -445,15 +440,6 @@ var World_Base = function() {
     }
 
     return new Promise(async function(resolve, reject) {
-      console.log('[GROUND DEBUG] load() called with processedOptions:', {
-        image: self.processedOptions.image,
-        imageScale: self.processedOptions.imageScale,
-        groundLength: self.processedOptions.groundLength,
-        groundWidth: self.processedOptions.groundWidth,
-        uScale: self.processedOptions.uScale,
-        vScale: self.processedOptions.vScale,
-        groundType: self.processedOptions.groundType
-      });
       var groundMat = new BABYLON.StandardMaterial('ground', scene);
       var groundTexture = new BABYLON.Texture(self.processedOptions.image, scene);
       groundMat.diffuseTexture = groundTexture;
