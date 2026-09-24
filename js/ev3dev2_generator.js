@@ -82,9 +82,36 @@ var ev3dev2_generator = new function() {
   };
 
   // Generate python code
+  // A block set to Auto port looks it up in autoPorts, and the blocks are
+  // generated before the header loop below fills it in. So the first genCode
+  // after loading a robot used the defaults (port 1): a GPS on port 4 came out
+  // as gps_sensor_in1, a name that does not exist, and the first Run failed.
+  this.refreshAutoPorts = function() {
+    var types = ['ColorSensor', 'UltrasonicSensor', 'LaserRangeSensor', 'GyroSensor', 'GPSSensor',
+                 'TouchSensor', 'Pen', 'CameraSensor', 'Display'];
+    var i = 1;
+    var sensor = null;
+    while (sensor = robot.getComponentByPort('in' + i)) {
+      if (types.indexOf(sensor.type) != -1) {
+        self.autoPorts[sensor.type] = i;
+      }
+      i++;
+    }
+    let PORT_LETTERS = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    i = robot.processedOptions.wheels ? 3 : 1;
+    var motor = null;
+    while (motor = robot.getComponentByPort('out' + PORT_LETTERS[i])) {
+      if (motor.type == 'LED') {
+        self.autoPorts['LED'] = PORT_LETTERS[i];
+      }
+      i++;
+    }
+  };
+
   this.genCode = function() {
     self.training_wheels = false;
 
+    self.refreshAutoPorts();
     let workspaceCode = Blockly.Python.workspaceToCode(blockly.workspace);
 
     let wheelCode = robot.processedOptions.wheels ?
