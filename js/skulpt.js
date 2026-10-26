@@ -16,7 +16,7 @@ var skulpt = new function() {
     './pybricks/hubs.py': 'pybricks/hubs.py?v=7fa5cb11',
     './pybricks/ev3devices.py': 'pybricks/ev3devices.py?v=peneffect1',
     './pybricks/robotics.py': 'pybricks/robotics.py?v=bf287d71',
-    './ev3dev2/Training_Wheels.py': 'ev3dev2/Training_Wheels.py?v=ad06cf56',
+    './ev3dev2/Training_Wheels.py': 'ev3dev2/Training_Wheels.py?v=turnfloor3',
   };
   this.preloadedLibs = {};
 

@@ -31,6 +31,12 @@ class Training_Wheels:
         base_dir = -self.dir + 90
         dir_vec = self._get_unit_vec((math.cos(base_dir / 180.0 * math.pi), math.sin(base_dir / 180.0 * math.pi)))
         nor_vec = (dir_vec[1], -dir_vec[0])
+        # start the line where the robot really is, side to side: a move brakes a little past its
+        # mark, which after a turn is a sideways offset, and steering back onto the old line
+        # wobbled the next side of a square by several centimeters
+        side = self._dot((self.gps.x - self.x, self.gps.y - self.y), nor_vec)
+        self.x += side * nor_vec[0]
+        self.y += side * nor_vec[1]
 
         while True:
             pos_vec = (self.gps.x - self.x, self.gps.y - self.y)
@@ -38,8 +44,10 @@ class Training_Wheels:
             correction = -10 * error
             distance_travelled = self._dot(pos_vec, dir_vec)
             speed = 25
+            # a turn pivots on the axle, so the GPS can start a move a little behind where the last
+            # one ended; a negative distance here made a speed near 0, and the robot never set off
             if distance_travelled < 5:
-                speed = 5 + distance_travelled * 4
+                speed = 5 + max(distance_travelled, 0) * 4
             if distance_travelled > cm - 5:
                 distance_remaining = cm - distance_travelled
                 speed = 5 + distance_remaining * 4
@@ -54,6 +62,12 @@ class Training_Wheels:
         base_dir = -self.dir + 90
         dir_vec = self._get_unit_vec((math.cos(base_dir / 180.0 * math.pi), math.sin(base_dir / 180.0 * math.pi)))
         nor_vec = (dir_vec[1], -dir_vec[0])
+        # start the line where the robot really is, side to side: a move brakes a little past its
+        # mark, which after a turn is a sideways offset, and steering back onto the old line
+        # wobbled the next side of a square by several centimeters
+        side = self._dot((self.gps.x - self.x, self.gps.y - self.y), nor_vec)
+        self.x += side * nor_vec[0]
+        self.y += side * nor_vec[1]
 
         while True:
             pos_vec = (self.gps.x - self.x, self.gps.y - self.y)
@@ -61,8 +75,10 @@ class Training_Wheels:
             correction = -10 * error
             distance_travelled = -self._dot(pos_vec, dir_vec)
             speed = 25
+            # a turn pivots on the axle, so the GPS can start a move a little behind where the last
+            # one ended; a negative distance here made a speed near 0, and the robot never set off
             if distance_travelled < 5:
-                speed = 5 + distance_travelled * 4
+                speed = 5 + max(distance_travelled, 0) * 4
             if distance_travelled > cm - 5:
                 distance_remaining = cm - distance_travelled
                 speed = 5 + distance_remaining * 4
@@ -82,9 +98,11 @@ class Training_Wheels:
             if current_dir > dir - 40:
                 angle_remaining = dir - current_dir
                 speed = 1 + angle_remaining * 0.5
-            if current_dir >= dir:
+            # within half a degree is there: below about 4 the wheels cannot turn the robot at all,
+            # so a turn that slows to 1 near the end stops just short and never finishes
+            if current_dir >= dir - 0.5:
                 break
-            self.steering_drive.on(100, speed)
+            self.steering_drive.on(100, max(speed, 4))
         self.steering_drive.off(brake=True)
 
     def spin_left(self, dir):
@@ -96,9 +114,9 @@ class Training_Wheels:
             if current_dir < dir + 40:
                 angle_remaining = dir - current_dir
                 speed = 1 + -angle_remaining * 0.5
-            if current_dir <= dir:
+            if current_dir <= dir + 0.5:
                 break
-            self.steering_drive.on(-100, speed)
+            self.steering_drive.on(-100, max(speed, 4))
         self.steering_drive.off(brake=True)
 
     def spin_to(self, dir):
