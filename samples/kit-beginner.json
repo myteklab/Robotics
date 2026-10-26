@@ -1,0 +1,46 @@
+{
+  "deny": {
+    "categories": [
+      "Motion",
+      "Motor",
+      "LED",
+      "Display",
+      "Radio",
+      "Math",
+      "Text",
+      "Lists",
+      "Variables",
+      "Functions"
+    ],
+    "blocks": [
+      "laser_sensor",
+      "gyro_sensor",
+      "reset_gyro",
+      "gps_sensor",
+      "touch_state",
+      "wait_for_state",
+      "button_state",
+      "wait_until_button",
+      "keyboard_key_state",
+      "color_sensor",
+      "controls_for",
+      "controls_flow_statements",
+      "logic_operation",
+      "logic_negate",
+      "logic_null",
+      "logic_ternary",
+      "time",
+      "exit",
+      "penSetEffect",
+      "controls_forEach",
+      "color",
+      "cameraActivate",
+      "cameraDeactivate"
+    ]
+  },
+  "show": {
+    "categories": [
+      "Movement"
+    ]
+  }
+}
