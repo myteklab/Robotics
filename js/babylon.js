@@ -286,6 +286,15 @@ var babylon = new function() {
     }
 
     return self.loadMeshes(self.scene).then(function(){
+      // A project opening for the first time gets the default view, behind the robot. Kept as it
+      // was, the camera stays where the page's own first robot put it, so a world whose robot
+      // starts somewhere else is seen from the side or the far end.
+      if (window._platformProjectPending) {
+        window._platformProjectPending = false;
+        self.resetCamera();
+        self.setCameraMode(mode);
+        return;
+      }
       // Restore camera (if we saved its state earlier)
       if (pos) {
         self.setCameraMode(mode);
