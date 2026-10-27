@@ -354,6 +354,7 @@ var blockly = new function() {
         self.workspace.clear();
         Blockly.Xml.domToWorkspace(dom, self.workspace);
         self.assignOrphenToPage('Main');
+        self.dropEmptyExtraHats();
         self.showPage('Main');
 
         let pages = [];
@@ -372,6 +373,24 @@ var blockly = new function() {
         }
       }
     }
+  };
+
+  // A save sometimes held a second, empty When Started at 0,0 beside the real one (a copy from the
+  // mirror between the two workspaces; seen twice in kit passes, not reproduced on purpose). An empty
+  // When Started does nothing when run, so drop it when its page already has another.
+  this.dropEmptyExtraHats = function() {
+    let hats = {};
+    self.workspace.getTopBlocks(false).forEach(function(block) {
+      if (block.type != 'when_started') return;
+      (hats[block.data] = hats[block.data] || []).push(block);
+    });
+    Object.keys(hats).forEach(function(page) {
+      let list = hats[page];
+      if (list.length < 2) return;
+      let empty = list.filter(function(block) { return !block.getNextBlock(); });
+      if (empty.length == list.length) empty.shift();
+      empty.forEach(function(block) { block.dispose(false); });
+    });
   };
 
   // import functions from xmlText to workspace
