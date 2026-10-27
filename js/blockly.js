@@ -111,6 +111,27 @@ var blockly = new function() {
         options.toolbox = self.toolboxXml.getElementById('toolbox');
         self.workspace = Blockly.inject('blocklyHiddenDiv', options);
         self.displayedWorkspace = Blockly.inject('blocklyDiv', options);
+        // A block let go with its top about half a block above the last block in a stack landed one
+        // slot above it about half the time: Blockly kept the slot it picked while the block was still
+        // moving, and the gray preview block pushed the last block down, which made "above" look nearer.
+        // An outline preview moves nothing, and with no preference for the current slot the nearest
+        // slot at the moment of letting go wins.
+        Blockly.config.currentConnectionPreference = 0;
+        self.displayedWorkspace.getRenderer().getConnectionPreviewMethod = function() {
+          return Blockly.InsertionMarkerManager.PREVIEW_TYPE.INPUT_OUTLINE;
+        };
+        // Blockly 9 clears the yellow highlight only on a slot that has a block in it, so the end of a
+        // stack kept a yellow mark after every outline preview. Clear it whatever the slot holds.
+        var imm = Blockly.InsertionMarkerManager.prototype;
+        if (!imm.hidePreview_.patchedHighlight) {
+          var hide = imm.hidePreview_;
+          imm.hidePreview_ = function() {
+            var c = this.closestConnection_;
+            hide.call(this);
+            if (c && c.unhighlight) c.unhighlight();
+          };
+          imm.hidePreview_.patchedHighlight = true;
+        }
         self.displayedWorkspace.addChangeListener(self.mirrorEvent);
         self.registerCustomToolboxes();
 
