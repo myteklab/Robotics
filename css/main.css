@@ -436,7 +436,9 @@ ul.menuDropDownRightAlign {
   .joystick .virtualJoystick {
     position: relative;
     font-size: 150px;
-    height: 150px; }
+    height: 150px;
+    /* a finger on the stick steers the robot instead of scrolling the page */
+    touch-action: none; }
     .joystick .virtualJoystick .icon-virtualJoystickIndicator {
       position: absolute;
       color: #ddd;

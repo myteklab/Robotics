@@ -191,6 +191,8 @@ var simPanel = new function() {
     }
     self.$virtualJoystick[0].addEventListener('pointerup', resetJoystick);
     self.$virtualJoystick[0].addEventListener('pointerleave', resetJoystick);
+    // A touch the browser takes back must stop the robot too, or it keeps driving.
+    self.$virtualJoystick[0].addEventListener('pointercancel', resetJoystick);
   };
 
   // Key controls for joystick
